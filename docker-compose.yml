@@ -20,3 +20,4 @@ services:
 networks:
   deploy_network:
     driver: bridge
+
