@@ -27,6 +27,7 @@ build-backend = "poetry.core.masonry.api"
 api = "python back/main.py"
 ui = "python -m streamlit run front/Home.py" 
 test = "pytest"
+addt = "python back/app/utils/questoes.py"
 
 [tool.poe.tasks.start]
 "shell" = "trap 'kill 0' INT; poe api & poe ui & wait"

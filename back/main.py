@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.routers.auth import authentication_router
+from app.routers.questoes import questoes_router
 
 app = FastAPI(
     root_path="/avaliar-back",
@@ -16,6 +17,7 @@ async def health():
     return {"status": "ok"}
 
 app.include_router(authentication_router, tags=["auth"])
+app.include_router(questoes_router, tags=["questoes"])
 
 if __name__ == "__main__":
     import uvicorn
