@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  webapp:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/front/node_modules
+    environment:
+      - ENVIRONMENT=development
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development services (optional)
+  webapp-dev:
+    profiles: ["dev"]
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/front/node_modules
+    environment:
+      - ENVIRONMENT=development
+    command: >
+      sh -c "poetry install && 
+             cd front && npm install && cd .. &&
+             poetry run poe start"

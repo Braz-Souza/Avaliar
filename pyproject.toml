@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "avaliar"
+version = "0.0.0"
+description = "Sistema de Gestão de Provas"
+authors = ["Braz Souza <mail@braz.one>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+fastapi = {version = ">=0.116.1,<0.117.0", extras = ["standard"]}
+poethepoet = "^0.37.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poe.tasks]
+start = "python -c \"import subprocess; import threading; import os; p1 = subprocess.Popen(['uvicorn', 'main:app', '--reload', '--host', '0.0.0.0', '--port', '8000']); p2 = subprocess.Popen(['npm', 'start'], cwd='./front'); p1.wait(); p2.wait()\""
+api = "uvicorn main:app --reload --host 0.0.0.0 --port 8000"
+front = {shell = "cd front && npm start"}
+dev = {shell = "uvicorn main:app --reload --host 0.0.0.0 --port 8000"}
+
+[tool.poe.tasks.install-deps]
+shell = "npm install --prefix ./front"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
