@@ -6,10 +6,13 @@ Para rodar ambiente monolitico rodando front e back num unico container utilize 
 docker build -t avaliar-web:latest .
 
 # Para deixar o container somente com a porta do front aberta
-docker run -p 3000:3000 avaliar-web:latest
+docker run -p 3000:3000 --name avaliar avaliar-web:latest
 
 # Para deixar o container com a porta do front e back aberta
-docker run -p 8000:8000 -p 3000:3000 avaliar-web:latest
+docker run -p 8000:8000 -p 3000:3000 --name avaliar avaliar-web:latest
+
+# Para parar o container 
+docker stop avaliar
 ```
 
 Para rodar em ambientes separados utilize o docker-compose.yml
