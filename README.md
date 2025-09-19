@@ -11,8 +11,8 @@ docker run -p 3000:3000 --name avaliar avaliar-web:latest
 # Para deixar o container com a porta do front e back aberta
 docker run -p 8000:8000 -p 3000:3000 --name avaliar avaliar-web:latest
 
-# Para parar o container 
-docker stop avaliar
+# Para parar e deletar o container permitindo rodar novamente
+docker rm -f avaliar
 ```
 
 Para rodar em ambientes separados utilize o docker-compose.yml
