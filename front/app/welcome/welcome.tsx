@@ -1,7 +1,26 @@
 import logoDark from "./logo-dark.svg";
 import logoLight from "./logo-light.svg";
+import { healthApi } from "../services/api";
+import { useState, useEffect } from "react";
 
 export function Welcome() {
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+
+  const checkApiStatus = async () => {
+    try {
+      await healthApi.get();
+      setApiStatus('online');
+    } catch (error) {
+      setApiStatus('offline');
+    }
+  };
+
+  useEffect(() => {
+    checkApiStatus();
+    const interval = setInterval(checkApiStatus, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <main className="flex items-center justify-center pt-16 pb-4">
       <div className="flex-1 flex flex-col items-center gap-16 min-h-0">
@@ -40,6 +59,20 @@ export function Welcome() {
               ))}
             </ul>
           </nav>
+          <div className="alert shadow-lg bg-base">
+            <div className="flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-down-to-line-icon lucide-arrow-down-to-line"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg>
+              {apiStatus === 'checking' && (
+                <span>Checking API status...</span>
+              )}
+              {apiStatus === 'online' && (
+                <span>API Online</span>
+              )}
+              {apiStatus === 'offline' && (
+                <span>API Offline</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </main>
