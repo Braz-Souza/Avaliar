@@ -1,13 +1,13 @@
 import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { Start } from "../start/start";
 
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Avaliar" },
-    { name: "description", content: "Pagina inicial" },
+    { name: "description", content: "Plataforma web completa para criação, gestão e aplicação de provas educacionais" },
   ];
 }
 
 export default function Home() {
-  return <Welcome />;
+  return <Start />;
 }
