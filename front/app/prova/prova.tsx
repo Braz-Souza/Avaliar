@@ -1,8 +1,9 @@
 
-import { ArrowLeft, Download, FileText, Eye, ExternalLink } from "lucide-react";
-import { NavLink } from "react-router";
+import { ArrowLeft, Download, FileText, Eye, ExternalLink, Save, FolderOpen } from "lucide-react";
+import { NavLink, useSearchParams } from "react-router";
 import { useState, useRef, useEffect } from "react";
 import LaTeXCompiler from "../services/tex";
+import { provasApi } from "../services/api";
 import type { Route } from "./+types/prova";
 
 export function meta({}: Route.MetaArgs) {
@@ -35,6 +36,9 @@ function highlightSyntax(text: string): string {
 }
 
 export default function Prova() {
+  const [searchParams] = useSearchParams();
+  const provaId = searchParams.get('id');
+  
   const [latexContent, setLatexContent] = useState(`Q: Qual é a capital do Brasil?
 a) São Paulo
 b) Brasília *
@@ -52,8 +56,14 @@ d) CSS`);
   const [compilationError, setCompilationError] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<'pdf' | 'latex'>('pdf');
   const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [provaName, setProvaName] = useState<string>('');
+  const [currentProvaId, setCurrentProvaId] = useState<string | null>(provaId);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const saveDialogRef = useRef<HTMLDialogElement>(null);
 
   const handleCompile = async () => {
     setIsCompiling(true);
@@ -99,6 +109,72 @@ d) CSS`);
     return null;
   };
 
+  const handleSaveProva = async () => {
+    if (!provaName.trim()) {
+      setSaveError('Por favor, insira um nome para a prova');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      if (currentProvaId) {
+        // Update existing prova
+        await provasApi.update(currentProvaId, {
+          name: provaName,
+          content: latexContent,
+        });
+      } else {
+        // Create new prova
+        const result = await provasApi.create({
+          name: provaName,
+          content: latexContent,
+        });
+        setCurrentProvaId(result.id);
+      }
+
+      setShowSaveDialog(false);
+      saveDialogRef.current?.close();
+    } catch (error) {
+      console.error('Erro ao salvar prova:', error);
+      setSaveError('Erro ao salvar a prova. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openSaveDialog = () => {
+    setShowSaveDialog(true);
+    setSaveError(null);
+    // Open dialog after state update
+    setTimeout(() => {
+      saveDialogRef.current?.showModal();
+    }, 0);
+  };
+
+  const closeSaveDialog = () => {
+    setShowSaveDialog(false);
+    setSaveError(null);
+    saveDialogRef.current?.close();
+  };
+
+  // Load prova if ID is provided
+  useEffect(() => {
+    if (provaId) {
+      provasApi.get(provaId)
+        .then((prova) => {
+          setLatexContent(prova.content);
+          setProvaName(prova.name);
+          setCurrentProvaId(provaId);
+        })
+        .catch((error) => {
+          console.error('Erro ao carregar prova:', error);
+          setCompilationError('Erro ao carregar a prova');
+        });
+    }
+  }, [provaId]);
+
   useEffect(() => {
     // Auto-compile when content changes (debounced)
     const timer = setTimeout(() => {
@@ -125,6 +201,14 @@ d) CSS`);
           <ArrowLeft />
           Voltar
         </NavLink>
+
+        <button
+          className="btn btn-success flex-1 p-2 m-2 gap-2"
+          onClick={openSaveDialog}
+        >
+          <Save className="w-4 h-4" />
+          {currentProvaId ? 'Atualizar' : 'Salvar'}
+        </button>
 
         <button
           className={`btn flex-1 p-2 m-2 gap-2 ${isCompiling ? 'btn-disabled' : 'btn-primary btn-outline'}`}
@@ -249,6 +333,59 @@ d) CSS`);
           </div>
         </div>
       </div>
+
+      {/* Save Dialog */}
+      <dialog ref={saveDialogRef} className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg mb-4">
+            {currentProvaId ? 'Atualizar Prova' : 'Salvar Prova'}
+          </h3>
+          
+          <div className="form-control w-full">
+            <label className="label">
+              <span className="label-text">Nome da Prova</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Prova de Matemática - Unidade 1"
+              className="input input-bordered w-full"
+              value={provaName}
+              onChange={(e) => setProvaName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSaveProva();
+                }
+              }}
+            />
+          </div>
+
+          {saveError && (
+            <div className="alert alert-error mt-4">
+              <span className="text-sm">{saveError}</span>
+            </div>
+          )}
+
+          <div className="modal-action">
+            <button
+              className="btn btn-ghost"
+              onClick={closeSaveDialog}
+              disabled={isSaving}
+            >
+              Cancelar
+            </button>
+            <button
+              className={`btn btn-success ${isSaving ? 'loading' : ''}`}
+              onClick={handleSaveProva}
+              disabled={isSaving}
+            >
+              {isSaving ? 'Salvando...' : (currentProvaId ? 'Atualizar' : 'Salvar')}
+            </button>
+          </div>
+        </div>
+        <form method="dialog" className="modal-backdrop">
+          <button onClick={closeSaveDialog}>close</button>
+        </form>
+      </dialog>
     </main>
   );
 }

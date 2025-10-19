@@ -39,6 +39,18 @@ class CompilationResult(BaseModel):
     error: str = None
     logs: list[str] = []
 
+class ProvaData(BaseModel):
+    """Modelo para dados de uma prova"""
+    name: str
+    content: str
+
+class ProvaInfo(BaseModel):
+    """Modelo para informações resumidas de uma prova"""
+    id: str
+    name: str
+    created_at: str
+    modified_at: str
+
 # =============================================================================
 # CONFIGURAÇÃO DE MIDDLEWARES
 # =============================================================================
@@ -62,6 +74,10 @@ REACT_BUILD_DIR = Path("./front/build/client")
 # Diretório para armazenar os PDFs gerados
 PDF_OUTPUT_DIR = Path("./static/pdfs")
 PDF_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Diretório para armazenar os arquivos LaTeX fonte das provas
+LATEX_SOURCES_DIR = Path("./static/latex_sources")
+LATEX_SOURCES_DIR.mkdir(parents=True, exist_ok=True)
 
 # Mount dos arquivos estáticos do React (CSS, JS, imagens, etc.)
 if REACT_BUILD_DIR.exists():
@@ -204,6 +220,168 @@ async def get_pdf(filename: str):
             "X-Frame-Options": "ALLOWALL"
         }
     )
+
+# =============================================================================
+# ROTAS DA API - GERENCIAMENTO DE PROVAS
+# =============================================================================
+
+@app.post("/api/provas")
+async def save_prova(prova: ProvaData):
+    """
+    Salva uma prova (conteúdo LaTeX) no servidor
+    
+    Args:
+        prova: Dados da prova (nome e conteúdo)
+        
+    Returns:
+        ProvaInfo: Informações da prova salva
+    """
+    import re
+    from datetime import datetime
+    
+    # Sanitize filename
+    safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', prova.name)
+    if not safe_name:
+        safe_name = "prova"
+    
+    # Create unique ID based on name and timestamp
+    prova_id = f"{safe_name}_{int(datetime.now().timestamp())}"
+    
+    # Save LaTeX content
+    latex_file = LATEX_SOURCES_DIR / f"{prova_id}.tex"
+    latex_file.write_text(prova.content, encoding='utf-8')
+    
+    # Get file stats
+    stats = latex_file.stat()
+    created_at = datetime.fromtimestamp(stats.st_ctime).isoformat()
+    modified_at = datetime.fromtimestamp(stats.st_mtime).isoformat()
+    
+    return ProvaInfo(
+        id=prova_id,
+        name=prova.name,
+        created_at=created_at,
+        modified_at=modified_at
+    )
+
+@app.get("/api/provas")
+async def list_provas():
+    """
+    Lista todas as provas salvas
+    
+    Returns:
+        list[ProvaInfo]: Lista de informações das provas
+    """
+    from datetime import datetime
+    
+    provas = []
+    
+    for latex_file in LATEX_SOURCES_DIR.glob("*.tex"):
+        prova_id = latex_file.stem
+        
+        # Extract original name from ID (remove timestamp)
+        name_parts = prova_id.rsplit('_', 1)
+        name = name_parts[0].replace('_', ' ')
+        
+        # Get file stats
+        stats = latex_file.stat()
+        created_at = datetime.fromtimestamp(stats.st_ctime).isoformat()
+        modified_at = datetime.fromtimestamp(stats.st_mtime).isoformat()
+        
+        provas.append(ProvaInfo(
+            id=prova_id,
+            name=name,
+            created_at=created_at,
+            modified_at=modified_at
+        ))
+    
+    # Sort by modification date (newest first)
+    provas.sort(key=lambda p: p.modified_at, reverse=True)
+    
+    return provas
+
+@app.get("/api/provas/{prova_id}")
+async def get_prova(prova_id: str):
+    """
+    Recupera o conteúdo de uma prova salva
+    
+    Args:
+        prova_id: ID da prova
+        
+    Returns:
+        ProvaData: Dados da prova
+    """
+    latex_file = LATEX_SOURCES_DIR / f"{prova_id}.tex"
+    
+    if not latex_file.exists():
+        raise HTTPException(status_code=404, detail="Prova not found")
+    
+    content = latex_file.read_text(encoding='utf-8')
+    
+    # Extract name from ID
+    name_parts = prova_id.rsplit('_', 1)
+    name = name_parts[0].replace('_', ' ')
+    
+    return ProvaData(name=name, content=content)
+
+@app.put("/api/provas/{prova_id}")
+async def update_prova(prova_id: str, prova: ProvaData):
+    """
+    Atualiza uma prova existente
+    
+    Args:
+        prova_id: ID da prova
+        prova: Novos dados da prova
+        
+    Returns:
+        ProvaInfo: Informações atualizadas da prova
+    """
+    from datetime import datetime
+    
+    latex_file = LATEX_SOURCES_DIR / f"{prova_id}.tex"
+    
+    if not latex_file.exists():
+        raise HTTPException(status_code=404, detail="Prova not found")
+    
+    # Update content
+    latex_file.write_text(prova.content, encoding='utf-8')
+    
+    # Get updated stats
+    stats = latex_file.stat()
+    created_at = datetime.fromtimestamp(stats.st_ctime).isoformat()
+    modified_at = datetime.fromtimestamp(stats.st_mtime).isoformat()
+    
+    return ProvaInfo(
+        id=prova_id,
+        name=prova.name,
+        created_at=created_at,
+        modified_at=modified_at
+    )
+
+@app.delete("/api/provas/{prova_id}")
+async def delete_prova(prova_id: str):
+    """
+    Exclui uma prova salva
+    
+    Args:
+        prova_id: ID da prova
+        
+    Returns:
+        dict: Mensagem de sucesso
+    """
+    latex_file = LATEX_SOURCES_DIR / f"{prova_id}.tex"
+    
+    if not latex_file.exists():
+        raise HTTPException(status_code=404, detail="Prova not found")
+    
+    # Delete LaTeX file
+    latex_file.unlink()
+    
+    # Delete associated PDF if exists
+    pdf_file = PDF_OUTPUT_DIR / f"{prova_id}.pdf"
+    if pdf_file.exists():
+        pdf_file.unlink()
+    
+    return {"message": "Prova deleted successfully", "id": prova_id}
 
 # =============================================================================
 # ROTAS DO FRONTEND - SERVINDO A APLICAÇÃO REACT
