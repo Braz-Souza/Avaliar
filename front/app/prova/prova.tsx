@@ -1,5 +1,5 @@
 
-import { ArrowLeft, Download, FileText, Eye, ExternalLink, Save, FolderOpen } from "lucide-react";
+import { ArrowLeft, Download, FileText, Eye, ExternalLink, Save } from "lucide-react";
 import { NavLink, useSearchParams } from "react-router";
 import { useState, useRef, useEffect } from "react";
 import LaTeXCompiler from "../services/tex";

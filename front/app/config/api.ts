@@ -1,16 +1,5 @@
 /**
- * Configurações da   if (isProduction || isDocker) {  if (isProduction || isDocker) {
-    // Em produção ou Docker, usa URL relativa
-    return path;
-  } else {
-    // Em desenvolvimento, usa URL completa com porta 4200
-    return `http://localhost:4200${path}`;
-  } Em produção ou Docker, usa URL relativa (mesmo servidor)
-    baseURL = '/api';
-  } else {
-    // Em desenvolvimento local, usa porta 4200 do backend
-    baseURL = 'http://localhost:4200/api';
-  }eadas no ambiente
+ * Configurações da API baseadas no ambiente
  */
 
 interface ApiConfig {

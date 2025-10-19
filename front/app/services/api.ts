@@ -9,13 +9,6 @@ export const api = axios.create({
   },
 });
 
-export const healthApi = {
-  get: async (): Promise<{ status: string; }> => {
-    const response = await api.get('/health');
-    return response.data;
-  },
-}
-
 // Types
 export interface ProvaData {
   name: string;
