@@ -33,6 +33,8 @@ front/npm-debug.log*
 front/yarn-debug.log*
 front/yarn-error.log*
 
+static/pdfs/*
+
 .DS_Store
 .vscode
 .idea

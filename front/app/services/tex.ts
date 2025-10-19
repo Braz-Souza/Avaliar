@@ -150,7 +150,10 @@ Campo de descrição sobre a prova...
     try {
       const latexContent = this.generateAMCDocument(content);
 
-      const response = await fetch('http://localhost:8000/api/compile-latex', {
+      // Importa configuração da API
+      const { API_CONFIG, getResourceUrl } = await import('../config/api');
+
+      const response = await fetch(`${API_CONFIG.baseURL}/compile-latex`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -170,7 +173,7 @@ Campo de descrição sobre a prova...
       if (result.success) {
         return {
           success: true,
-          pdfUrl: `http://localhost:8000${result.pdfUrl}`,
+          pdfUrl: getResourceUrl(result.pdfUrl),
           logs: result.logs || [],
         };
       } else {

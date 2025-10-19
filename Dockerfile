@@ -1,61 +1,64 @@
-# Production Dockerfile with nginx
-FROM python:3.12-slim
+# =============================================================================
+# MULTI-STAGE DOCKERFILE PARA PRODUÇÃO
+# =============================================================================
 
-# Install Node.js and nginx
-RUN apt-get update && apt-get install -y curl nginx && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
+# =============================================================================
+# STAGE 1: BUILD DO FRONTEND REACT
+# =============================================================================
+FROM node:18-alpine AS frontend-builder
 
-# Install Poetry
-RUN pip install poetry
+WORKDIR /app/front
+
+# Copy package files for better caching
+COPY front/package*.json ./
+
+# Install Node.js dependencies
+RUN npm ci --only=production
+
+# Copy frontend source code
+COPY front/ ./
+
+# Build React application
+RUN npm run build
+
+# =============================================================================
+# STAGE 2: CONFIGURAÇÃO DO BACKEND PYTHON COM UV
+# =============================================================================
+FROM python:3.12-slim AS backend
+
+# Install system dependencies including LaTeX
+RUN apt-get update && apt-get install -y \
+    texlive-latex-base \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    texlive-fonts-extra \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 # Set working directory
 WORKDIR /app
 
-# Configure Poetry
-RUN poetry config virtualenvs.create false
+# Copy Python configuration files
+COPY pyproject.toml uv.lock ./
 
-# Copy Poetry configuration
-COPY pyproject.toml ./
-COPY poetry.lock* ./
+# Install Python dependencies with uv
+RUN uv sync --frozen --no-dev
 
-# Copy everything
-COPY . ./
+# Copy backend source code
+COPY main.py ./
+COPY static/ ./static/
 
-# Install dependencies
-RUN poetry install
-RUN cd front && npm install
+# Copy built React files from frontend stage
+COPY --from=frontend-builder /app/front/build/ ./front/build/
 
-# Build frontend
-RUN cd front && npm run build
+# Create directory for PDF outputs
+RUN mkdir -p static/pdfs
 
-# Configure nginx
-RUN rm -rf /var/www/html/*
-RUN cp -r front/build/client/* /var/www/html/
+# Expose port
+EXPOSE 4200
 
-# Create nginx configuration
-RUN echo 'server {\n\
-    listen 80;\n\
-    server_name _;\n\
-    root /var/www/html;\n\
-    index index.html;\n\
-    \n\
-    location / {\n\
-        try_files $uri $uri/ /index.html;\n\
-    }\n\
-    \n\
-    location /api/ {\n\
-        proxy_pass http://localhost:8000;\n\
-        proxy_set_header Host $host;\n\
-        proxy_set_header X-Real-IP $remote_addr;\n\
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n\
-        proxy_set_header X-Forwarded-Proto $scheme;\n\
-    }\n\
-}' > /etc/nginx/sites-available/default
-
-# Expose ports
-EXPOSE 80 8000
-
-# Start both nginx and the Python backend
-CMD service nginx start && poetry run poe start
+# Run with uv
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "4200"]

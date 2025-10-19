@@ -1,49 +1,102 @@
-from fastapi import FastAPI, HTTPException
+# =============================================================================
+# IMPORTS E CONFIGURAÇÕES INICIAIS
+# =============================================================================
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import subprocess
 import tempfile
 from pathlib import Path
 import shutil
+import os
 
-app = FastAPI(title="Avaliar API", version="0.0.0")
+# =============================================================================
+# CONFIGURAÇÃO DA APLICAÇÃO FASTAPI
+# =============================================================================
+
+app = FastAPI(
+    title="Avaliar API", 
+    version="0.0.0", 
+    docs_url="/api/docs"
+)
+
+# =============================================================================
+# MODELOS PYDANTIC PARA VALIDAÇÃO DE DADOS
+# =============================================================================
 
 class LaTeXCompileRequest(BaseModel):
+    """Modelo para requisição de compilação LaTeX"""
     latex: str
     filename: str = "document"
 
 class CompilationResult(BaseModel):
+    """Modelo para resultado da compilação LaTeX"""
     success: bool
     pdfUrl: str = None
     error: str = None
     logs: list[str] = []
 
-# CORS middleware
+# =============================================================================
+# CONFIGURAÇÃO DE MIDDLEWARES
+# =============================================================================
+
+# CORS middleware - permite requisições de diferentes origens
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8080", "http://127.0.0.1:8080"],
+    allow_origins=["*"],  # TROCAR DEPOIS EM PRODUÇÃO
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/")
-def read_root():
-    return {"status": "running..."}
+# =============================================================================
+# CONFIGURAÇÃO DE ARQUIVOS ESTÁTICOS E DIRETÓRIOS
+# =============================================================================
 
-@app.get("/api/health")
-def health_check():
-    return {"status": "healthy"}
+# Diretório onde estão os arquivos buildados do React
+REACT_BUILD_DIR = Path("./front/build/client")
 
-# Create output directory for PDFs
+# Diretório para armazenar os PDFs gerados
 PDF_OUTPUT_DIR = Path("./static/pdfs")
 PDF_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# Mount dos arquivos estáticos do React (CSS, JS, imagens, etc.)
+if REACT_BUILD_DIR.exists():
+    # Mount específico para assets do React (referenciados como /assets/ no index.html)
+    assets_dir = REACT_BUILD_DIR / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+    
+    # Mount geral para arquivos estáticos (favicon, etc.)
+    app.mount("/static", StaticFiles(directory=str(REACT_BUILD_DIR), html=True), name="static")
+
+# =============================================================================
+# ROTAS DE SISTEMA E HEALTH CHECK
+# =============================================================================
+
+@app.get("/api/health")
+def health_check():
+    """Endpoint para verificar se a API está funcionando"""
+    return {"status": "healthy"}
+
+# =============================================================================
+# ROTAS DA API - COMPILAÇÃO LaTeX
+# =============================================================================
+
 @app.post("/api/compile-latex")
 async def compile_latex(request: LaTeXCompileRequest):
-    """Compile LaTeX to PDF using pdflatex"""
-
+    """
+    Compila código LaTeX para PDF usando pdflatex
+    
+    Args:
+        request: Objeto contendo o código LaTeX e nome do arquivo
+        
+    Returns:
+        CompilationResult: Resultado da compilação com sucesso/erro e logs
+    """
     # Use filename as compile ID to reuse same file
     compile_id = request.filename
 
@@ -127,7 +180,15 @@ async def compile_latex(request: LaTeXCompileRequest):
 
 @app.get("/api/pdfs/{filename}")
 async def get_pdf(filename: str):
-    """Serve compiled PDF files"""
+    """
+    Serve os arquivos PDF compilados
+    
+    Args:
+        filename: Nome do arquivo PDF a ser servido
+        
+    Returns:
+        FileResponse: Arquivo PDF com headers apropriados
+    """
     pdf_path = PDF_OUTPUT_DIR / filename
 
     if not pdf_path.exists():
@@ -144,6 +205,65 @@ async def get_pdf(filename: str):
         }
     )
 
+# =============================================================================
+# ROTAS DO FRONTEND - SERVINDO A APLICAÇÃO REACT
+# =============================================================================
+
+@app.get("/")
+async def serve_react_root():
+    """
+    Serve a aplicação React na rota raiz
+    
+    Returns:
+        FileResponse: Arquivo index.html do React ou página de erro
+    """
+    index_path = REACT_BUILD_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path), media_type="text/html")
+    else:
+        return HTMLResponse(
+            content="<h1>React app not built</h1><p>Please run 'npm run build' in the front/ directory.</p>",
+            status_code=404
+        )
+
+@app.get("/{full_path:path}")
+async def serve_react_app(request: Request, full_path: str):
+    """
+    Serve a aplicação React para todas as rotas não-API.
+    Isso permite o roteamento client-side da SPA (Single Page Application).
+    
+    Args:
+        request: Objeto da requisição HTTP
+        full_path: Caminho completo da URL requisitada
+        
+    Returns:
+        FileResponse: Arquivo index.html do React para permitir client-side routing
+    """
+    # Não intercepta rotas da API
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API route not found")
+    
+    # Não intercepta arquivos estáticos (são servidos pelo mount)
+    if full_path.startswith("static/"):
+        raise HTTPException(status_code=404, detail="Static file not found")
+        
+    # Serve o index.html do React para todas as outras rotas (SPA routing)
+    index_path = REACT_BUILD_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(str(index_path), media_type="text/html")
+    else:
+        return HTMLResponse(
+            content="<h1>React app not built</h1><p>Please run 'npm run build' in the front/ directory.</p>",
+            status_code=404
+        )
+
+# =============================================================================
+# CONFIGURAÇÃO DE EXECUÇÃO DO SERVIDOR
+# =============================================================================
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    # Porta configurável via variável de ambiente, padrão 4200 para desenvolvimento
+    port = int(os.getenv("API_PORT", "4200"))
+    # Executa o servidor em modo desenvolvimento com auto-reload
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
