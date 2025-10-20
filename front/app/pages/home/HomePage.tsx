@@ -1,11 +1,17 @@
-import logoDark from "./logo-dark.svg";
-import logoLight from "./logo-light.svg";
+/**
+ * Home Page
+ * Lista de provas salvas
+ */
+
+import logoDark from "./assets/logo-dark.svg";
+import logoLight from "./assets/logo-light.svg";
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
-import { provasApi, type ProvaInfo } from "../services/api";
+import { provasApi, type ProvaInfo } from "../../services/api";
 import { FileText, Trash2, Edit, PlusCircle } from "lucide-react";
+import { formatDate } from "../../utils/date-formatter";
 
-export function Start() {
+export function HomePage() {
   const [provas, setProvas] = useState<ProvaInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,17 +50,6 @@ export function Start() {
     } finally {
       setDeletingId(null);
     }
-  };
-
-  const formatDate = (isoDate: string) => {
-    const date = new Date(isoDate);
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   return (
