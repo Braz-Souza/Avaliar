@@ -192,158 +192,310 @@ d) CSS`);
   }, [pdfUrl]);
 
   return (
-    <main className="flex items-center justify-center h-screen bg-base-200">
-      <div className="flex flex-col max-w-36">
-        <NavLink
-          className="btn btn-primary gap-4 flex-1 p-2 m-2"
-          to="/"
-        >
-          <ArrowLeft />
-          Voltar
-        </NavLink>
-
-        <button
-          className="btn btn-success flex-1 p-2 m-2 gap-2"
-          onClick={openSaveDialog}
-        >
-          <Save className="w-4 h-4" />
-          {currentProvaId ? 'Atualizar' : 'Salvar'}
-        </button>
-
-        <button
-          className={`btn flex-1 p-2 m-2 gap-2 ${isCompiling ? 'btn-disabled' : 'btn-primary btn-outline'}`}
-          onClick={handleDownloadPDF}
-          disabled={isCompiling}
-        >
-          <Download className="w-4 h-4" />
-          {isCompiling ? 'Compilando...' : 'Baixar PDF'}
-        </button>
-
-        <button
-          className="btn btn-primary btn-outline flex-1 p-2 m-2 gap-2"
-          onClick={handleDownloadLatex}
-        >
-          <FileText className="w-4 h-4" />
-          Baixar LaTeX
-        </button>
-
-        <div className="flex flex-col gap-2 mt-4">
-          <span className="text-sm font-medium">Visualização:</span>
-          <div className="btn-group">
-            <button
-              className={`btn btn-sm ${previewMode === 'pdf' ? 'btn-active' : 'btn-outline'}`}
-              onClick={() => setPreviewMode('pdf')}
-            >
-              PDF
-            </button>
-            <button
-              className={`btn btn-sm ${previewMode === 'latex' ? 'btn-active' : 'btn-outline'}`}
-              onClick={() => setPreviewMode('latex')}
-            >
-              LaTeX
-            </button>
-          </div>
+    <main className="flex h-screen bg-gradient-to-br from-base-200 to-base-300">
+      {/* Sidebar */}
+      <aside className="w-72 bg-base-100 shadow-2xl flex flex-col border-r border-base-300">
+        {/* Logo/Header */}
+        <div className="p-6 border-b border-base-300">
+          <NavLink to="/" className="flex items-center gap-3 group">
+            <div className="btn btn-circle btn-primary btn-sm">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-primary">Avaliar</h1>
+              <p className="text-xs text-base-content/60">Editor de Provas</p>
+            </div>
+          </NavLink>
         </div>
-      </div>
 
-      <div className="h-full w-fit bg-base-400 flex flex-1 p-8 gap-8">
-        <div className="flex flex-col flex-1 h-full gap-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-medium">Editor</h3>
-          </div>
-
-          <div className="relative flex-1 h-full">
-            <textarea
-              ref={textareaRef}
-              className="shadow textarea absolute inset-0 w-full h-full font-mono text-sm resize-none z-10 bg-transparent text-transparent caret-gray-900"
-              placeholder=""
-              value={latexContent}
-              onChange={(e) => setLatexContent(e.target.value)}
-              spellCheck={false}
-            />
-            <div className="absolute inset-0 p-3 font-mono text-sm overflow-auto pointer-events-none whitespace-pre-wrap leading-5">
-              <div dangerouslySetInnerHTML={{ __html: highlightSyntax(latexContent) }} />
-            </div>
-            <div className="absolute bottom-2 right-2 text-xs text-gray-500 bg-white px-2 py-1 rounded shadow pointer-events-none">
-              Formato: Q: pergunta / QM: múltipla / a) opção / * = correta
-            </div>
-          </div>
-
-          {compilationError && (
-            <div className="alert alert-error">
-              <span className="text-sm">{compilationError}</span>
+        {/* Status Section */}
+        <div className="p-6 border-b border-base-300 space-y-3">
+          {provaName && (
+            <div>
+              <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wide">
+                Prova Atual
+              </label>
+              <p className="text-sm font-medium mt-1 truncate">{provaName}</p>
             </div>
           )}
+          <div className="flex flex-wrap gap-2">
+            <div className="badge badge-primary gap-1">
+              <FileText className="w-3 h-3" />
+              Editor
+            </div>
+            {currentProvaId && (
+              <div className="badge badge-success gap-1">
+                <Save className="w-3 h-3" />
+                Salvo
+              </div>
+            )}
+            {isCompiling && (
+              <div className="badge badge-warning gap-1">
+                <span className="loading loading-spinner loading-xs"></span>
+                Compilando
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="flex flex-col flex-1 h-full gap-4">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-medium">Visualização</h3>
-            {isCompiling && <span className="loading loading-spinner loading-sm"></span>}
+        {/* Main Actions */}
+        <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+          {/* Save Section */}
+          <div>
+            <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-3 block">
+              Ações Principais
+            </label>
+            <button
+              className="btn btn-success w-full gap-2 justify-start"
+              onClick={openSaveDialog}
+            >
+              <Save className="w-5 h-5" />
+              <span className="flex-1 text-left">
+                {currentProvaId ? 'Atualizar Prova' : 'Salvar Prova'}
+              </span>
+            </button>
           </div>
 
-          <div className="bg-base-100 shadow flex flex-1 h-full w-full overflow-hidden rounded-lg">
-            {previewMode === 'pdf' ? (
-              pdfUrl ? (
-                pdfLoadError ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <ExternalLink className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                      <p className="mb-4">Erro ao carregar PDF no navegador</p>
-                      <a
-                        href={pdfUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-primary btn-sm"
-                      >
-                        Abrir PDF em nova aba
-                      </a>
+          {/* Preview Mode */}
+          <div>
+            <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-3 block">
+              Visualização
+            </label>
+            <div className="space-y-2">
+              <button
+                className={`btn w-full gap-2 justify-start ${
+                  previewMode === 'pdf' ? 'btn-primary' : 'btn-ghost'
+                }`}
+                onClick={() => setPreviewMode('pdf')}
+              >
+                <Eye className="w-5 h-5" />
+                <span className="flex-1 text-left">Pré-visualizar PDF</span>
+              </button>
+              <button
+                className={`btn w-full gap-2 justify-start ${
+                  previewMode === 'latex' ? 'btn-primary' : 'btn-ghost'
+                }`}
+                onClick={() => setPreviewMode('latex')}
+              >
+                <FileText className="w-5 h-5" />
+                <span className="flex-1 text-left">Código LaTeX</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Download Section */}
+          <div>
+            <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-3 block">
+              Downloads
+            </label>
+            <div className="space-y-2">
+              <button
+                className="btn btn-outline btn-primary w-full gap-2 justify-start"
+                onClick={handleDownloadPDF}
+                disabled={isCompiling}
+              >
+                <Download className="w-5 h-5" />
+                <span className="flex-1 text-left">
+                  {isCompiling ? 'Compilando...' : 'Baixar PDF'}
+                </span>
+              </button>
+              <button
+                className="btn btn-outline btn-secondary w-full gap-2 justify-start"
+                onClick={handleDownloadLatex}
+              >
+                <FileText className="w-5 h-5" />
+                <span className="flex-1 text-left">Baixar LaTeX</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Help Section */}
+          <div className="pt-4">
+            <div className="alert alert-info shadow-lg">
+              <div>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div className="text-xs">
+                  <p className="font-semibold mb-1">Formato de Questões:</p>
+                  <p className="opacity-80">Q: questão simples</p>
+                  <p className="opacity-80">QM: múltipla escolha</p>
+                  <p className="opacity-80">a), b), c)... opções</p>
+                  <p className="opacity-80">* marca resposta correta</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Info */}
+        <div className="p-6 border-t border-base-300">
+          <div className="text-xs text-base-content/50 text-center">
+            <p>Avaliar v0.0</p>
+            <p className="mt-1">Sistema de Provas</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Editor Panel */}
+        <div className="flex-1 flex flex-col p-6 overflow-hidden">
+          <div className="card bg-base-100 shadow-xl flex-1 flex flex-col overflow-hidden border border-base-300">
+            <div className="card-body p-0 flex-1 flex flex-col overflow-hidden">
+              {/* Editor Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 bg-gradient-to-r from-info/10 to-primary/10">
+                <div className="flex items-center gap-2">
+                  <div className="avatar placeholder">
+                    <div className="bg-info text-info-content rounded-full w-8">
+                      <FileText className="w-4 h-4 m-2" />
                     </div>
                   </div>
-                ) : (
-                  <iframe
-                    src={pdfUrl}
-                    className="w-full h-full border-0"
-                    title="PDF Preview"
-                    onLoad={() => console.log('PDF carregado com sucesso')}
-                    onError={() => {
-                      console.error('Erro ao carregar iframe');
-                      setPdfLoadError(true);
-                    }}
-                  >
-                    <div className="flex items-center justify-center h-full">
-                      <span>PDF não disponível - seu navegador não suporta visualização de PDF</span>
-                    </div>
-                  </iframe>
-                )
-              ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <Eye className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <p>Digite algo no editor para gerar o PDF</p>
-                    {isCompiling && <p className="text-sm text-gray-500 mt-2">Compilando...</p>}
+                  <h2 className="text-lg font-semibold">Editor</h2>
+                </div>
+              </div>
+
+              {/* Editor Content */}
+              <div className="relative flex-1 overflow-hidden bg-white">
+                <div className="absolute inset-0 p-4 font-mono text-sm overflow-auto pointer-events-none whitespace-pre-wrap leading-6 z-0">
+                  <div dangerouslySetInnerHTML={{ __html: highlightSyntax(latexContent) }} />
+                </div>
+                <textarea
+                  ref={textareaRef}
+                  className="absolute inset-0 w-full h-full font-mono text-sm resize-none z-10 bg-transparent text-transparent caret-gray-900 border-0 p-4 leading-6 focus:outline-none"
+                  placeholder="Digite suas questões aqui..."
+                  value={latexContent}
+                  onChange={(e) => setLatexContent(e.target.value)}
+                  spellCheck={false}
+                />
+              </div>
+
+              {/* Editor Footer */}
+              {compilationError && (
+                <div className="px-6 py-3 border-t border-base-300">
+                  <div className="alert alert-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm">{compilationError}</span>
                   </div>
                 </div>
-              )
-            ) : (
-              <pre className="p-4 overflow-auto text-sm font-mono w-full h-full bg-gray-50">
-                {getPreviewContent()}
-              </pre>
-            )}
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Preview Panel */}
+        <div className="flex-1 flex flex-col p-6 pl-0 overflow-hidden">
+          <div className="card bg-base-100 shadow-xl flex-1 flex flex-col overflow-hidden border border-base-300">
+            <div className="card-body p-0 flex-1 flex flex-col overflow-hidden">
+              {/* Preview Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-base-300 bg-gradient-to-r from-secondary/10 to-accent/10">
+                <div className="flex items-center gap-2">
+                  <div className="avatar placeholder">
+                    <div className="bg-secondary text-secondary-content rounded-full w-8 flex items-center justify-center">
+                      <Eye className="w-4 h-4 m-2" />
+                    </div>
+                  </div>
+                  <h2 className="text-lg font-semibold">
+                    {previewMode === 'pdf' ? 'Pré-visualização PDF' : 'Código LaTeX'}
+                  </h2>
+                </div>
+                {pdfUrl && previewMode === 'pdf' && (
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm btn-ghost gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Nova aba
+                  </a>
+                )}
+              </div>
+
+              {/* Preview Content */}
+              <div className="flex-1 overflow-hidden bg-base-200">
+                {previewMode === 'pdf' ? (
+                  pdfUrl ? (
+                    pdfLoadError ? (
+                      <div className="flex items-center justify-center h-full p-8">
+                        <div className="card bg-base-100 shadow-xl max-w-md">
+                          <div className="card-body text-center space-y-4">
+                            <ExternalLink className="w-16 h-16 mx-auto text-error" />
+                            <div>
+                              <h3 className="text-lg font-bold mb-2">Erro ao carregar PDF</h3>
+                              <p className="text-sm text-base-content/70">
+                                O navegador não conseguiu exibir o PDF
+                              </p>
+                            </div>
+                            <a
+                              href={pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn btn-primary gap-2"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Abrir em nova aba
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <iframe
+                        src={pdfUrl}
+                        className="w-full h-full border-0"
+                        title="PDF Preview"
+                        onLoad={() => console.log('PDF carregado com sucesso')}
+                        onError={() => {
+                          console.error('Erro ao carregar iframe');
+                          setPdfLoadError(true);
+                        }}
+                      />
+                    )
+                  ) : (
+                    <div className="flex items-center justify-center h-full p-8">
+                      <div className="card bg-base-100 shadow-xl max-w-md">
+                        <div className="card-body text-center space-y-4">
+                          <Eye className="w-16 h-16 mx-auto text-base-content/30" />
+                          <div>
+                            <h3 className="text-lg font-bold mb-2">Aguardando conteúdo</h3>
+                            <p className="text-sm text-base-content/70">
+                              {isCompiling ? 'Compilando documento...' : 'Digite no editor para gerar o PDF'}
+                            </p>
+                          </div>
+                          {isCompiling && (
+                            <progress className="progress progress-primary w-56"></progress>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  <div className="h-full overflow-auto">
+                    <div className="mockup-code h-full">
+                      <pre className="px-6"><code className="text-sm">{getPreviewContent()}</code></pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Save Dialog */}
-      <dialog ref={saveDialogRef} className="modal">
+      <dialog ref={saveDialogRef} className="modal modal-bottom sm:modal-middle">
         <div className="modal-box">
-          <h3 className="font-bold text-lg mb-4">
-            {currentProvaId ? 'Atualizar Prova' : 'Salvar Prova'}
+          <h3 className="font-bold text-lg flex items-center gap-2 mb-4">
+            <Save className="w-5 h-5" />
+            {currentProvaId ? 'Atualizar Prova' : 'Nova Prova'}
           </h3>
           
           <div className="form-control w-full">
             <label className="label">
-              <span className="label-text">Nome da Prova</span>
+              <span className="label-text font-medium">Nome da Prova</span>
+              <span className="label-text-alt text-base-content/50">Obrigatório</span>
             </label>
             <input
               type="text"
@@ -356,11 +508,20 @@ d) CSS`);
                   handleSaveProva();
                 }
               }}
+              autoFocus
             />
+            <label className="label">
+              <span className="label-text-alt text-base-content/50">
+                Pressione Enter para salvar rapidamente
+              </span>
+            </label>
           </div>
 
           {saveError && (
             <div className="alert alert-error mt-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               <span className="text-sm">{saveError}</span>
             </div>
           )}
@@ -374,10 +535,11 @@ d) CSS`);
               Cancelar
             </button>
             <button
-              className={`btn btn-success ${isSaving ? 'loading' : ''}`}
+              className={`btn btn-success gap-2 ${isSaving ? 'btn-disabled' : ''}`}
               onClick={handleSaveProva}
               disabled={isSaving}
             >
+              {isSaving && <span className="loading loading-spinner loading-sm"></span>}
               {isSaving ? 'Salvando...' : (currentProvaId ? 'Atualizar' : 'Salvar')}
             </button>
           </div>
