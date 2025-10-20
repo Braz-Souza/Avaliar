@@ -12,6 +12,14 @@ import tempfile
 from pathlib import Path
 import shutil
 import os
+import asyncio
+from datetime import datetime, timedelta
+from typing import Optional
+import logging
+
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # CONFIGURAÇÃO DA APLICAÇÃO FASTAPI
@@ -22,6 +30,22 @@ app = FastAPI(
     version="0.0.0", 
     docs_url="/api/docs"
 )
+
+# =============================================================================
+# CONFIGURAÇÕES DE CACHE E LIMPEZA
+# =============================================================================
+
+# Tempo de vida dos PDFs temporários (em minutos)
+TEMP_PDF_TTL_MINUTES = int(os.getenv("TEMP_PDF_TTL_MINUTES", "30"))
+
+# Intervalo de limpeza automática (em minutos)
+CLEANUP_INTERVAL_MINUTES = int(os.getenv("CLEANUP_INTERVAL_MINUTES", "10"))
+
+# Número máximo de PDFs temporários mantidos
+MAX_TEMP_PDFS = int(os.getenv("MAX_TEMP_PDFS", "100"))
+
+# Flag para distinguir PDFs temporários de provas salvas
+TEMP_PDF_PREFIX = "temp_"
 
 # =============================================================================
 # MODELOS PYDANTIC PARA VALIDAÇÃO DE DADOS
@@ -75,9 +99,16 @@ REACT_BUILD_DIR = Path("./front/build/client")
 PDF_OUTPUT_DIR = Path("./static/pdfs")
 PDF_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+# Diretório para PDFs temporários (compilações não salvas)
+TEMP_PDF_DIR = Path("./static/pdfs/temp")
+TEMP_PDF_DIR.mkdir(parents=True, exist_ok=True)
+
 # Diretório para armazenar os arquivos LaTeX fonte das provas
 LATEX_SOURCES_DIR = Path("./static/latex_sources")
 LATEX_SOURCES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Dicionário para rastrear metadados dos PDFs temporários
+pdf_metadata = {}
 
 # Mount dos arquivos estáticos do React (CSS, JS, imagens, etc.)
 if REACT_BUILD_DIR.exists():
@@ -90,13 +121,140 @@ if REACT_BUILD_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(REACT_BUILD_DIR), html=True), name="static")
 
 # =============================================================================
+# FUNÇÕES DE GERENCIAMENTO DE CACHE E LIMPEZA
+# =============================================================================
+
+def cleanup_temp_pdfs():
+    """
+    Remove PDFs temporários que excederam o TTL ou limite de quantidade
+    """
+    try:
+        now = datetime.now()
+        removed_count = 0
+        
+        # Listar todos os PDFs temporários com suas datas de modificação
+        temp_pdfs = []
+        for pdf_file in TEMP_PDF_DIR.glob("*.pdf"):
+            mtime = datetime.fromtimestamp(pdf_file.stat().st_mtime)
+            temp_pdfs.append((pdf_file, mtime))
+        
+        # Ordenar por data (mais antigos primeiro)
+        temp_pdfs.sort(key=lambda x: x[1])
+        
+        # Remover PDFs expirados (baseado em TTL)
+        ttl_threshold = now - timedelta(minutes=TEMP_PDF_TTL_MINUTES)
+        for pdf_file, mtime in temp_pdfs[:]:
+            if mtime < ttl_threshold:
+                pdf_file.unlink()
+                temp_pdfs.remove((pdf_file, mtime))
+                removed_count += 1
+                logger.info(f"Removed expired temp PDF: {pdf_file.name}")
+        
+        # Remover excesso de PDFs (baseado em quantidade máxima)
+        if len(temp_pdfs) > MAX_TEMP_PDFS:
+            excess = len(temp_pdfs) - MAX_TEMP_PDFS
+            for pdf_file, _ in temp_pdfs[:excess]:
+                pdf_file.unlink()
+                removed_count += 1
+                logger.info(f"Removed excess temp PDF: {pdf_file.name}")
+        
+        if removed_count > 0:
+            logger.info(f"Cleanup completed: {removed_count} temp PDFs removed")
+        
+        return removed_count
+        
+    except Exception as e:
+        logger.error(f"Error during cleanup: {str(e)}")
+        return 0
+
+async def periodic_cleanup():
+    """
+    Task em background que executa limpeza periódica
+    """
+    while True:
+        try:
+            await asyncio.sleep(CLEANUP_INTERVAL_MINUTES * 60)
+            cleanup_temp_pdfs()
+        except Exception as e:
+            logger.error(f"Error in periodic cleanup: {str(e)}")
+
+@app.on_event("startup")
+async def startup_event():
+    """
+    Inicializa tarefas ao iniciar a aplicação
+    """
+    # Executar limpeza inicial
+    cleanup_temp_pdfs()
+    
+    # Iniciar tarefa de limpeza periódica
+    asyncio.create_task(periodic_cleanup())
+    logger.info(f"Started periodic cleanup (interval: {CLEANUP_INTERVAL_MINUTES} min, TTL: {TEMP_PDF_TTL_MINUTES} min)")
+
+# =============================================================================
 # ROTAS DE SISTEMA E HEALTH CHECK
 # =============================================================================
 
 @app.get("/api/health")
 def health_check():
     """Endpoint para verificar se a API está funcionando"""
-    return {"status": "healthy"}
+    temp_pdf_count = len(list(TEMP_PDF_DIR.glob("*.pdf")))
+    saved_pdf_count = len(list(PDF_OUTPUT_DIR.glob("*.pdf")))
+    
+    return {
+        "status": "healthy",
+        "temp_pdfs": temp_pdf_count,
+        "saved_pdfs": saved_pdf_count,
+        "temp_pdf_ttl_minutes": TEMP_PDF_TTL_MINUTES,
+        "max_temp_pdfs": MAX_TEMP_PDFS
+    }
+
+@app.post("/api/cleanup")
+async def manual_cleanup():
+    """
+    Endpoint para executar limpeza manual de PDFs temporários
+    """
+    removed = cleanup_temp_pdfs()
+    return {
+        "success": True,
+        "removed_count": removed,
+        "remaining_temp_pdfs": len(list(TEMP_PDF_DIR.glob("*.pdf")))
+    }
+
+@app.get("/api/stats")
+async def get_stats():
+    """
+    Retorna estatísticas detalhadas sobre armazenamento
+    """
+    temp_pdfs = list(TEMP_PDF_DIR.glob("*.pdf"))
+    saved_pdfs = list(PDF_OUTPUT_DIR.glob("*.pdf"))
+    
+    # Calcular tamanho total
+    temp_size = sum(f.stat().st_size for f in temp_pdfs)
+    saved_size = sum(f.stat().st_size for f in saved_pdfs)
+    
+    # Calcular idade dos PDFs temporários
+    now = datetime.now()
+    oldest_temp = None
+    if temp_pdfs:
+        oldest_mtime = min(datetime.fromtimestamp(f.stat().st_mtime) for f in temp_pdfs)
+        oldest_temp = (now - oldest_mtime).total_seconds() / 60  # em minutos
+    
+    return {
+        "temp_pdfs": {
+            "count": len(temp_pdfs),
+            "size_mb": round(temp_size / (1024 * 1024), 2),
+            "oldest_age_minutes": round(oldest_temp, 2) if oldest_temp else None
+        },
+        "saved_pdfs": {
+            "count": len(saved_pdfs),
+            "size_mb": round(saved_size / (1024 * 1024), 2)
+        },
+        "config": {
+            "ttl_minutes": TEMP_PDF_TTL_MINUTES,
+            "max_temp_pdfs": MAX_TEMP_PDFS,
+            "cleanup_interval_minutes": CLEANUP_INTERVAL_MINUTES
+        }
+    }
 
 # =============================================================================
 # ROTAS DA API - COMPILAÇÃO LaTeX
@@ -113,8 +271,9 @@ async def compile_latex(request: LaTeXCompileRequest):
     Returns:
         CompilationResult: Resultado da compilação com sucesso/erro e logs
     """
-    # Use filename as compile ID to reuse same file
-    compile_id = request.filename
+    # Gerar ID único para compilação temporária
+    import uuid
+    compile_id = f"{TEMP_PDF_PREFIX}{uuid.uuid4().hex[:12]}"
 
     # Create temporary directory for compilation
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -139,14 +298,20 @@ async def compile_latex(request: LaTeXCompileRequest):
             pdf_file = temp_path / f"{request.filename}.pdf"
 
             if pdf_file.exists():
-                # Copy PDF to static directory
-                output_pdf = PDF_OUTPUT_DIR / f"{compile_id}.pdf"
+                # Copy PDF to temporary directory
+                output_pdf = TEMP_PDF_DIR / f"{compile_id}.pdf"
                 shutil.copy2(pdf_file, output_pdf)
+                
+                # Registrar metadata do PDF temporário
+                pdf_metadata[compile_id] = {
+                    "created_at": datetime.now(),
+                    "filename": request.filename
+                }
 
                 # Return success with PDF URL
                 return CompilationResult(
                     success=True,
-                    pdfUrl=f"/api/pdfs/{compile_id}.pdf",
+                    pdfUrl=f"/api/pdfs/temp/{compile_id}.pdf",
                     logs=result.stdout.split('\n') if result.stdout else []
                 )
             else:
@@ -194,10 +359,39 @@ async def compile_latex(request: LaTeXCompileRequest):
                 logs=[]
             )
 
+@app.get("/api/pdfs/temp/{filename}")
+async def get_temp_pdf(filename: str):
+    """
+    Serve os arquivos PDF temporários (compilações não salvas)
+    
+    Args:
+        filename: Nome do arquivo PDF temporário a ser servido
+        
+    Returns:
+        FileResponse: Arquivo PDF com headers apropriados
+    """
+    pdf_path = TEMP_PDF_DIR / filename
+
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="Temporary PDF not found or expired")
+
+    return FileResponse(
+        path=str(pdf_path),
+        media_type='application/pdf',
+        filename=filename,
+        headers={
+            "Content-Disposition": "inline",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "X-Frame-Options": "ALLOWALL"
+        }
+    )
+
 @app.get("/api/pdfs/{filename}")
 async def get_pdf(filename: str):
     """
-    Serve os arquivos PDF compilados
+    Serve os arquivos PDF de provas salvas
     
     Args:
         filename: Nome do arquivo PDF a ser servido
@@ -216,7 +410,7 @@ async def get_pdf(filename: str):
         filename=filename,
         headers={
             "Content-Disposition": "inline",
-            "Cache-Control": "no-cache",
+            "Cache-Control": "public, max-age=3600",
             "X-Frame-Options": "ALLOWALL"
         }
     )
