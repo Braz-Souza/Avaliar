@@ -1,5 +1,5 @@
 
-import { ArrowLeft, Download, FileText, Eye, ExternalLink, Save } from "lucide-react";
+import { ArrowLeft, Download, FileText, Eye, ExternalLink, Save, Plus, Trash2, Check, Edit2, Code } from "lucide-react";
 import { NavLink, useSearchParams } from "react-router";
 import { useState, useRef, useEffect } from "react";
 import LaTeXCompiler from "../services/tex";
@@ -11,6 +11,76 @@ export function meta({}: Route.MetaArgs) {
     { title: "Prova" },
     { name: "description", content: "Plataforma web completa para criação, gestão e aplicação de provas educacionais" },
   ];
+}
+
+interface QuestionOption {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+}
+
+interface Question {
+  id: string;
+  type: 'simple' | 'multiple';
+  text: string;
+  options: QuestionOption[];
+}
+
+function parseLatexToQuestions(latex: string): Question[] {
+  const questions: Question[] = [];
+  const lines = latex.split('\n');
+  let currentQuestion: Question | null = null;
+  let optionIndex = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    if (trimmed.startsWith('Q:')) {
+      if (currentQuestion) questions.push(currentQuestion);
+      currentQuestion = {
+        id: Date.now().toString() + Math.random(),
+        type: 'simple',
+        text: trimmed.substring(2).trim(),
+        options: [],
+      };
+      optionIndex = 0;
+    } else if (trimmed.startsWith('QM:')) {
+      if (currentQuestion) questions.push(currentQuestion);
+      currentQuestion = {
+        id: Date.now().toString() + Math.random(),
+        type: 'multiple',
+        text: trimmed.substring(3).trim(),
+        options: [],
+      };
+      optionIndex = 0;
+    } else if (trimmed.match(/^[a-z]\)/)) {
+      if (currentQuestion) {
+        const hasAsterisk = trimmed.endsWith('*');
+        const text = trimmed.substring(2).trim().replace(/\*$/, '').trim();
+        currentQuestion.options.push({
+          id: Date.now().toString() + optionIndex++,
+          text,
+          isCorrect: hasAsterisk,
+        });
+      }
+    }
+  }
+
+  if (currentQuestion) questions.push(currentQuestion);
+  return questions;
+}
+
+function questionsToLatex(questions: Question[]): string {
+  return questions.map(q => {
+    const prefix = q.type === 'simple' ? 'Q:' : 'QM:';
+    const questionLine = `${prefix} ${q.text}`;
+    const optionLines = q.options.map((opt, idx) => {
+      const letter = String.fromCharCode(97 + idx);
+      const asterisk = opt.isCorrect ? ' *' : '';
+      return `${letter}) ${opt.text}${asterisk}`;
+    }).join('\n');
+    return `${questionLine}\n${optionLines}`;
+  }).join('\n\n');
 }
 
 function highlightSyntax(text: string): string {
@@ -39,7 +109,7 @@ export default function Prova() {
   const [searchParams] = useSearchParams();
   const provaId = searchParams.get('id');
   
-  const [latexContent, setLatexContent] = useState(`Q: Qual é a capital do Brasil?
+  const initialLatex = `Q: Qual é a capital do Brasil?
 a) São Paulo
 b) Brasília *
 c) Rio de Janeiro
@@ -49,7 +119,11 @@ QM: Quais das seguintes são linguagens de programação?
 a) JavaScript *
 b) HTML
 c) Python *
-d) CSS`);
+d) CSS`;
+
+  const [latexContent, setLatexContent] = useState(initialLatex);
+  const [questions, setQuestions] = useState<Question[]>(() => parseLatexToQuestions(initialLatex));
+  const [editMode, setEditMode] = useState<'visual' | 'code'>('visual');
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
@@ -64,6 +138,113 @@ d) CSS`);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveDialogRef = useRef<HTMLDialogElement>(null);
+
+  // Sync questions with latex content
+  useEffect(() => {
+    if (editMode === 'visual') {
+      const newLatex = questionsToLatex(questions);
+      setLatexContent(newLatex);
+    }
+  }, [questions, editMode]);
+
+  // Update questions when switching from code to visual mode
+  useEffect(() => {
+    if (editMode === 'visual') {
+      const parsed = parseLatexToQuestions(latexContent);
+      if (JSON.stringify(parsed) !== JSON.stringify(questions)) {
+        setQuestions(parsed);
+      }
+    }
+  }, [editMode]);
+
+  const addQuestion = (type: 'simple' | 'multiple') => {
+    const newQuestion: Question = {
+      id: Date.now().toString() + Math.random(),
+      type,
+      text: '',
+      options: [
+        { id: Date.now().toString() + '0', text: '', isCorrect: false },
+        { id: Date.now().toString() + '1', text: '', isCorrect: false },
+      ],
+    };
+    setQuestions([...questions, newQuestion]);
+  };
+
+  const removeQuestion = (id: string) => {
+    setQuestions(questions.filter(q => q.id !== id));
+  };
+
+  const updateQuestion = (id: string, text: string) => {
+    setQuestions(questions.map(q => q.id === id ? { ...q, text } : q));
+  };
+
+  const addOption = (questionId: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId) {
+        return {
+          ...q,
+          options: [...q.options, {
+            id: Date.now().toString() + Math.random(),
+            text: '',
+            isCorrect: false,
+          }],
+        };
+      }
+      return q;
+    }));
+  };
+
+  const removeOption = (questionId: string, optionId: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId) {
+        return {
+          ...q,
+          options: q.options.filter(opt => opt.id !== optionId),
+        };
+      }
+      return q;
+    }));
+  };
+
+  const updateOption = (questionId: string, optionId: string, text: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId) {
+        return {
+          ...q,
+          options: q.options.map(opt => 
+            opt.id === optionId ? { ...opt, text } : opt
+          ),
+        };
+      }
+      return q;
+    }));
+  };
+
+  const toggleOptionCorrect = (questionId: string, optionId: string) => {
+    setQuestions(questions.map(q => {
+      if (q.id === questionId) {
+        if (q.type === 'simple') {
+          // For simple questions, only one option can be correct
+          return {
+            ...q,
+            options: q.options.map(opt => ({
+              ...opt,
+              isCorrect: opt.id === optionId,
+            })),
+          };
+        } else {
+          // For multiple choice, toggle the option
+          return {
+            ...q,
+            options: q.options.map(opt => 
+              opt.id === optionId ? { ...opt, isCorrect: !opt.isCorrect } : opt
+            ),
+          };
+        }
+      }
+      return q;
+    }));
+  };
 
   const handleCompile = async () => {
     setIsCompiling(true);
@@ -165,6 +346,7 @@ d) CSS`);
       provasApi.get(provaId)
         .then((prova) => {
           setLatexContent(prova.content);
+          setQuestions(parseLatexToQuestions(prova.content));
           setProvaName(prova.name);
           setCurrentProvaId(provaId);
         })
@@ -353,22 +535,152 @@ d) CSS`);
                   </div>
                   <h2 className="text-lg font-semibold">Editor</h2>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    className={`btn btn-sm gap-2 ${editMode === 'visual' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setEditMode('visual')}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Visual
+                  </button>
+                  <button
+                    className={`btn btn-sm gap-2 ${editMode === 'code' ? 'btn-primary' : 'btn-ghost'}`}
+                    onClick={() => setEditMode('code')}
+                  >
+                    <Code className="w-4 h-4" />
+                    Código
+                  </button>
+                </div>
               </div>
 
               {/* Editor Content */}
-              <div className="relative flex-1 overflow-hidden bg-white">
-                <div className="absolute inset-0 p-4 font-mono text-sm overflow-auto pointer-events-none whitespace-pre-wrap leading-6 z-0">
-                  <div dangerouslySetInnerHTML={{ __html: highlightSyntax(latexContent) }} />
+              {editMode === 'visual' ? (
+                <div className="flex-1 overflow-auto p-6 bg-base-200 space-y-4">
+                  {/* Questions List */}
+                  {questions.length === 0 && (
+                    <div className="card bg-base-100 shadow-xl">
+                      <div className="card-body text-center py-12">
+                        <FileText className="w-16 h-16 mx-auto text-base-content/30 mb-4" />
+                        <h3 className="text-lg font-bold mb-2">Nenhuma questão adicionada</h3>
+                        <p className="text-sm text-base-content/70">
+                          Clique nos botões abaixo para adicionar sua primeira questão
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {questions.map((question, qIndex) => (
+                    <div key={question.id} className="card bg-base-100 shadow-xl">
+                      <div className="card-body">
+                        {/* Question Header */}
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="badge badge-lg badge-primary">
+                            {qIndex + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="badge badge-outline">
+                                {question.type === 'simple' ? 'Questão Simples' : 'Múltipla Escolha'}
+                              </span>
+                            </div>
+                            <textarea
+                              className="textarea textarea-bordered w-full"
+                              placeholder="Digite a pergunta..."
+                              value={question.text}
+                              onChange={(e) => updateQuestion(question.id, e.target.value)}
+                              rows={2}
+                            />
+                          </div>
+                          <button
+                            className="btn btn-ghost btn-sm text-error"
+                            onClick={() => removeQuestion(question.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Options */}
+                        <div className="space-y-2 ml-12">
+                          {question.options.map((option, optIndex) => (
+                            <div key={option.id} className="flex items-center gap-2">
+                              <span className="badge badge-neutral">
+                                {String.fromCharCode(97 + optIndex)})
+                              </span>
+                              <input
+                                type="text"
+                                className="input input-bordered flex-1"
+                                placeholder="Digite a opção de resposta..."
+                                value={option.text}
+                                onChange={(e) => updateOption(question.id, option.id, e.target.value)}
+                              />
+                              <button
+                                className={`btn btn-sm ${
+                                  option.isCorrect 
+                                    ? 'btn-success' 
+                                    : 'btn-ghost'
+                                }`}
+                                onClick={() => toggleOptionCorrect(question.id, option.id)}
+                                title={option.isCorrect ? 'Resposta correta' : 'Marcar como correta'}
+                              >
+                                <Check className="w-4 h-4" />
+                              </button>
+                              {question.options.length > 2 && (
+                                <button
+                                  className="btn btn-ghost btn-sm text-error"
+                                  onClick={() => removeOption(question.id, option.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          
+                          {/* Add Option Button */}
+                          <button
+                            className="btn btn-ghost btn-sm gap-2 ml-8"
+                            onClick={() => addOption(question.id)}
+                          >
+                            <Plus className="w-3 h-3" />
+                            Adicionar opção
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Add Question Buttons - Below all questions */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      className="btn btn-primary btn-lg gap-2 flex-1 shadow-lg"
+                      onClick={() => addQuestion('simple')}
+                    >
+                      <Plus className="w-5 h-5" />
+                      Adicionar Questão Simples
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-lg gap-2 flex-1 shadow-lg"
+                      onClick={() => addQuestion('multiple')}
+                    >
+                      <Plus className="w-5 h-5" />
+                      Adicionar Múltipla Escolha
+                    </button>
+                  </div>
                 </div>
-                <textarea
-                  ref={textareaRef}
-                  className="absolute inset-0 w-full h-full font-mono text-sm resize-none z-10 bg-transparent text-transparent caret-gray-900 border-0 p-4 leading-6 focus:outline-none"
-                  placeholder="Digite suas questões aqui..."
-                  value={latexContent}
-                  onChange={(e) => setLatexContent(e.target.value)}
-                  spellCheck={false}
-                />
-              </div>
+              ) : (
+                <div className="relative flex-1 overflow-hidden bg-white">
+                  <div className="absolute inset-0 p-4 font-mono text-sm overflow-auto pointer-events-none whitespace-pre-wrap leading-6 z-0">
+                    <div dangerouslySetInnerHTML={{ __html: highlightSyntax(latexContent) }} />
+                  </div>
+                  <textarea
+                    ref={textareaRef}
+                    className="absolute inset-0 w-full h-full font-mono text-sm resize-none z-10 bg-transparent text-transparent caret-gray-900 border-0 p-4 leading-6 focus:outline-none"
+                    placeholder="Digite suas questões aqui..."
+                    value={latexContent}
+                    onChange={(e) => setLatexContent(e.target.value)}
+                    spellCheck={false}
+                  />
+                </div>
+              )}
 
               {/* Editor Footer */}
               {compilationError && (
