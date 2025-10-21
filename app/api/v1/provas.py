@@ -1,11 +1,14 @@
 """
 Router para endpoints de gerenciamento de provas
+
+TODAS AS ROTAS REQUEREM AUTENTICAÇÃO (via middleware global)
 """
 
 from fastapi import APIRouter, Depends
 
 from app.models.prova import ProvaData, ProvaInfo
 from app.services.prova_manager import ProvaManagerService
+from app.core.dependencies import CurrentUser
 
 router = APIRouter(prefix="/provas", tags=["Provas Management"])
 
@@ -23,29 +26,35 @@ def get_prova_manager() -> ProvaManagerService:
 @router.post("", response_model=ProvaInfo, status_code=201)
 async def save_prova(
     prova: ProvaData,
+    user_id: CurrentUser,
     manager: ProvaManagerService = Depends(get_prova_manager)
 ) -> ProvaInfo:
     """
-    Salva uma nova prova no servidor
+    Salva uma nova prova no servidor - REQUER AUTENTICAÇÃO
     
     Args:
         prova: Dados da prova (nome e conteúdo LaTeX)
+        user_id: ID do usuário autenticado (injetado pelo middleware)
         manager: Serviço de gerenciamento (injetado)
         
     Returns:
         ProvaInfo com informações da prova salva
     """
+    # Aqui você pode usar o user_id para associar a prova ao usuário
+    # Ex: prova.created_by = user_id
     return await manager.save_prova(prova)
 
 
 @router.get("", response_model=list[ProvaInfo])
 async def list_provas(
+    user_id: CurrentUser,
     manager: ProvaManagerService = Depends(get_prova_manager)
 ) -> list[ProvaInfo]:
     """
-    Lista todas as provas salvas
+    Lista todas as provas salvas - REQUER AUTENTICAÇÃO
     
     Args:
+        user_id: ID do usuário autenticado (injetado pelo middleware)
         manager: Serviço de gerenciamento (injetado)
         
     Returns:

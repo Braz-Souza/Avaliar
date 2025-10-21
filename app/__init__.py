@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.middleware import setup_middleware
 from app.core.events import startup_handler, shutdown_handler
+from app.core.auth import auth
 from app.api.v1.routes import api_router
 from app.api.frontend import router as frontend_router
 
@@ -30,6 +31,9 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc",
         description="API para criação e gerenciamento de provas com compilação LaTeX"
     )
+    
+    # Configurar autenticação (AuthX error handlers)
+    auth.handle_errors(app)
     
     # Configurar middlewares (CORS, etc)
     setup_middleware(app)

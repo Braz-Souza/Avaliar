@@ -70,6 +70,15 @@ class Settings(BaseSettings):
     LATEX_TIMEOUT_SECONDS: int = 30
     LATEX_COMPILE_RUNS: int = 2
     
+    # =============================================================================
+    # JWT / AUTH SETTINGS
+    # =============================================================================
+    JWT_SECRET_KEY: str = "your-secret-key-change-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_TOKEN_LOCATION: list[str] = ["headers"]
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    LOGIN_PIN: str = "123456"
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
