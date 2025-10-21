@@ -52,7 +52,6 @@ RUN uv sync --frozen --no-dev
 COPY main.py ./
 COPY app/ ./app/
 RUN mkdir -p static/
-COPY .env ./.env
 
 # Copy built React files from frontend stage
 COPY --from=frontend-builder /app/front/build/ ./front/build/
