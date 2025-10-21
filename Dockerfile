@@ -12,8 +12,8 @@ WORKDIR /app/front
 # Copy package files for better caching
 COPY front/package*.json ./
 
-# Install Node.js dependencies
-RUN npm ci --only=production
+# Install Node.js dependencies (including dev dependencies for build)
+RUN npm ci
 
 # Copy frontend source code
 COPY front/ ./
@@ -26,14 +26,14 @@ RUN npm run build
 # =============================================================================
 FROM python:3.12-slim AS backend
 
-# Install system dependencies including LaTeX
-RUN apt-get update && apt-get install -y \
-    texlive-latex-base \
-    texlive-latex-extra \
-    texlive-fonts-recommended \
-    texlive-fonts-extra \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl perl wget ca-certificates \
+        texlive-latex-base \
+        texlive-fonts-recommended \
+        texlive-fonts-extra \
+        texlive-latex-extra && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
@@ -49,7 +49,9 @@ RUN uv sync --frozen --no-dev
 
 # Copy backend source code
 COPY main.py ./
+COPY app/ ./app/
 COPY static/ ./static/
+COPY .env ./.env
 
 # Copy built React files from frontend stage
 COPY --from=frontend-builder /app/front/build/ ./front/build/

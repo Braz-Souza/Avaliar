@@ -19,22 +19,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # Development services (optional)
-  webapp-dev:
-    profiles: ["dev"]
-    build: 
-      context: .
-      dockerfile: Dockerfile.dev
-    ports:
-      - "4200:4200"
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/front/node_modules
-    environment:
-      - ENVIRONMENT=development
-    command: >
-      sh -c "poetry install && 
-             cd front && npm install && cd .. &&
-             poetry run poe start"
