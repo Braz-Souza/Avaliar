@@ -10,6 +10,17 @@ cd ..
 uv run main.py
 ```
 
+```bash
+# Desenvolvimento (com reload)
+uv run uvicorn main:app --reload
+
+# Ou usando o script Python
+uv run python main.py
+
+# Produção
+uv run uvicorn main:app --host 0.0.0.0 --port 4200 --workers 4
+```
+
 A aplicação estará disponível em: `http://localhost:4200`
 
 ## Configuração Docker

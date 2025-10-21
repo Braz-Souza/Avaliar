@@ -1,0 +1,104 @@
+"""
+Configurações centralizadas da aplicação usando Pydantic Settings
+"""
+
+from pydantic_settings import BaseSettings
+from pathlib import Path
+from functools import lru_cache
+
+
+class Settings(BaseSettings):
+    """Configurações da aplicação validadas com Pydantic"""
+    
+    # =============================================================================
+    # API SETTINGS
+    # =============================================================================
+    APP_NAME: str = "Avaliar API"
+    APP_VERSION: str = "0.0.0"
+    API_PORT: int = 4200
+    DEBUG: bool = True
+    
+    # =============================================================================
+    # PATH SETTINGS
+    # =============================================================================
+    BASE_DIR: Path = Path(__file__).parent.parent.parent
+    REACT_BUILD_DIR: Path = BASE_DIR / "front/build/client"
+    PDF_OUTPUT_DIR: Path = BASE_DIR / "static/pdfs"
+    TEMP_PDF_DIR: Path = BASE_DIR / "static/pdfs/temp"
+    LATEX_SOURCES_DIR: Path = BASE_DIR / "static/latex_sources"
+    
+    # =============================================================================
+    # CACHE & CLEANUP SETTINGS
+    # =============================================================================
+    TEMP_PDF_TTL_MINUTES: int = 30
+    CLEANUP_INTERVAL_MINUTES: int = 10
+    MAX_TEMP_PDFS: int = 100
+    TEMP_PDF_PREFIX: str = "temp_"
+    
+    # =============================================================================
+    # CORS SETTINGS
+    # =============================================================================
+    CORS_ORIGINS: str = "*"  # Use "*" ou "http://localhost:3000,http://localhost:5173"
+    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_METHODS: str = "*"
+    CORS_ALLOW_HEADERS: str = "*"
+    
+    @property
+    def cors_origins_list(self) -> list[str]:
+        """Converte CORS_ORIGINS string em lista"""
+        if self.CORS_ORIGINS == "*":
+            return ["*"]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+    
+    @property
+    def cors_methods_list(self) -> list[str]:
+        """Converte CORS_ALLOW_METHODS string em lista"""
+        if self.CORS_ALLOW_METHODS == "*":
+            return ["*"]
+        return [method.strip() for method in self.CORS_ALLOW_METHODS.split(",")]
+    
+    @property
+    def cors_headers_list(self) -> list[str]:
+        """Converte CORS_ALLOW_HEADERS string em lista"""
+        if self.CORS_ALLOW_HEADERS == "*":
+            return ["*"]
+        return [header.strip() for header in self.CORS_ALLOW_HEADERS.split(",")]
+    
+    # =============================================================================
+    # LATEX COMPILATION SETTINGS
+    # =============================================================================
+    LATEX_TIMEOUT_SECONDS: int = 30
+    LATEX_COMPILE_RUNS: int = 2
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+        extra = "ignore"  # Ignorar campos extras do .env
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    """
+    Retorna instância singleton das configurações
+    
+    Returns:
+        Settings: Configurações da aplicação
+    """
+    return Settings()
+
+
+# Instância global de settings
+settings = get_settings()
+
+
+def init_directories():
+    """
+    Cria os diretórios necessários para a aplicação
+    """
+    settings.PDF_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    settings.TEMP_PDF_DIR.mkdir(parents=True, exist_ok=True)
+    settings.LATEX_SOURCES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+# Inicializar diretórios ao importar o módulo
+init_directories()

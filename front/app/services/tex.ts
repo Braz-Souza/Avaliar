@@ -153,7 +153,7 @@ Campo de descrição sobre a prova...
       // Importa configuração da API
       const { API_CONFIG, getResourceUrl } = await import('../config/api');
 
-      const response = await fetch(`${API_CONFIG.baseURL}/compile-latex`, {
+      const response = await fetch(`${API_CONFIG.baseURL}/latex/compile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

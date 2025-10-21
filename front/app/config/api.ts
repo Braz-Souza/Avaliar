@@ -26,8 +26,8 @@ function getApiConfig(): ApiConfig {
     // Em produção ou Docker, usa URL relativa (mesmo servidor)
     baseURL = '/api';
   } else {
-    // Em desenvolvimento local, usa porta padrão do backend
-    baseURL = 'http://localhost:8000/api';
+    // Em desenvolvimento local, usa porta padrão do backend (4200)
+    baseURL = 'http://localhost:4200/api';
   }
   
   return {
@@ -53,7 +53,7 @@ export function getResourceUrl(path: string): string {
     // Em produção ou Docker, usa URL relativa
     return path;
   } else {
-    // Em desenvolvimento, usa URL completa
-    return `http://localhost:8000${path}`;
+    // Em desenvolvimento, usa URL completa com porta 4200
+    return `http://localhost:4200${path}`;
   }
 }
