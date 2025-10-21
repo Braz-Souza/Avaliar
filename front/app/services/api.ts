@@ -53,3 +53,32 @@ export const provasApi = {
     await api.delete(`/provas/${provaId}`);
   },
 };
+
+// Auth API
+export interface LoginRequest {
+  password: string;
+}
+
+export interface LoginResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface UserInfoResponse {
+  user_id: string;
+  authenticated: boolean;
+}
+
+export const authApi = {
+  // Login with PIN
+  login: async (pin: string): Promise<LoginResponse> => {
+    const response = await api.post('/auth/login', { password: pin });
+    return response.data;
+  },
+  
+  // Get current user info
+  me: async (): Promise<UserInfoResponse> => {
+    const response = await api.get('/auth/me');
+    return response.data;
+  },
+};

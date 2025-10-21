@@ -8,10 +8,12 @@ import logoLight from "./assets/logo-light.svg";
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
 import { provasApi, type ProvaInfo } from "../../services/api";
-import { FileText, Trash2, Edit, PlusCircle } from "lucide-react";
+import { FileText, Trash2, Edit, PlusCircle, LogOut, User } from "lucide-react";
 import { formatDate } from "../../utils/date-formatter";
+import { useAuth } from "../../contexts/AuthContext";
 
 export function HomePage() {
+  const { user, logout } = useAuth();
   const [provas, setProvas] = useState<ProvaInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,22 +54,50 @@ export function HomePage() {
     }
   };
 
+  const handleLogout = () => {
+    if (confirm('Tem certeza que deseja sair?')) {
+      logout();
+    }
+  };
+
   return (
-    <main className="flex items-center justify-center min-h-screen bg-base-200 p-4">
-      <header className="absolute top-12 w-[500px] max-w-[100vw] p-4">
-        <img
-          src={logoLight}
-          alt="Avaliar Logo"
-          className="block w-full dark:hidden"
-        />
-        <img
-          src={logoDark}
-          alt="Avaliar Logo"
-          className="hidden w-full dark:block"
-        />
+    <main className="flex flex-col min-h-screen bg-base-200">
+      <header className="w-full bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <img
+                src={logoLight}
+                alt="Avaliar Logo"
+                className="h-8 w-auto dark:hidden"
+              />
+              <img
+                src={logoDark}
+                alt="Avaliar Logo"
+                className="h-8 w-auto hidden dark:block"
+              />
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-gray-700">
+                <User className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {user?.name || 'Usuário'}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </header>
-      
-      <div className="w-full max-w-4xl mt-32">
+
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-4xl">
         <div className="card bg-base-100 shadow-xl p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">Minhas Provas</h2>
@@ -146,6 +176,7 @@ export function HomePage() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </main>
   );
