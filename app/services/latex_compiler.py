@@ -41,10 +41,24 @@ class LaTeXCompilerService:
         """
         compile_id = self._generate_compile_id()
         
+        # Log do conteúdo LaTeX para debug
+        logger.debug(f"Compiling LaTeX for {filename}, content length: {len(latex_content)}")
+        logger.debug(f"LaTeX content preview: {latex_content[:200]}...")
+        
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             tex_file = temp_path / f"{filename}.tex"
-            tex_file.write_text(latex_content, encoding='utf-8')
+            
+            try:
+                tex_file.write_text(latex_content, encoding='utf-8')
+                logger.debug(f"LaTeX file written to: {tex_file}")
+            except Exception as e:
+                logger.error(f"Failed to write LaTeX file: {e}")
+                return CompilationResult(
+                    success=False,
+                    error=f"Failed to write LaTeX file: {str(e)}",
+                    logs=[]
+                )
             
             try:
                 result = await self._run_pdflatex(tex_file, temp_path)
@@ -169,6 +183,16 @@ class LaTeXCompilerService:
         """
         error_logs = self._collect_error_logs(temp_path, filename, result)
         
+        # Salvar conteúdo LaTeX problemático para debug
+        try:
+            failed_tex = temp_path / f"{filename}.tex"
+            if failed_tex.exists():
+                debug_file = settings.LATEX_SOURCES_DIR / f"failed_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.tex"
+                shutil.copy2(failed_tex, debug_file)
+                logger.debug(f"Failed LaTeX content saved to: {debug_file}")
+        except Exception as e:
+            logger.error(f"Failed to save debug LaTeX file: {e}")
+        
         logger.warning(f"LaTeX compilation failed for {filename} (exit code: {result.returncode})")
         
         return CompilationResult(
@@ -195,6 +219,15 @@ class LaTeXCompilerService:
             Lista de linhas de log
         """
         all_logs = []
+        
+        # Adicionar informações de debug
+        all_logs.extend([
+            f"=== COMPILATION DEBUG INFO ===",
+            f"Exit code: {result.returncode}",
+            f"Working directory: {temp_path}",
+            f"Filename: {filename}",
+            ""
+        ])
         
         # Tentar ler arquivo de log do LaTeX
         log_file = temp_path / f"{filename}.log"

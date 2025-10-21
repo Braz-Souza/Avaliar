@@ -32,7 +32,8 @@ RUN apt-get update && \
         texlive-latex-base \
         texlive-fonts-recommended \
         texlive-fonts-extra \
-        texlive-latex-extra && \
+        texlive-latex-extra \
+        auto-multiple-choice && \
     rm -rf /var/lib/apt/lists/*
 
 # Install uv
