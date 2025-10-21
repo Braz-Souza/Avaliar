@@ -50,7 +50,7 @@ RUN uv sync --frozen --no-dev
 # Copy backend source code
 COPY main.py ./
 COPY app/ ./app/
-COPY static/ ./static/
+RUN mkdir -p static/
 COPY .env ./.env
 
 # Copy built React files from frontend stage
