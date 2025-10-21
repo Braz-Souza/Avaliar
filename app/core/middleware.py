@@ -29,6 +29,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/api/health",
         "/api/system/health",
         "/api/system/info",
+        "/api/latex/compile" # TEMPORARY FIX
     }
     
     # Prefixos de rotas públicas (frontend, assets, etc)
@@ -36,6 +37,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/assets/",
         "/static/",
         "/_app/",
+        "/api/latex/pdfs/temp/" # TEMPORARY FIX
     )
     
     def __init__(self, app: ASGIApp):
