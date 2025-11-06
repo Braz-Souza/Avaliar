@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # =============================================================================
     APP_NAME: str = "Avaliar API"
     APP_VERSION: str = "0.0.0"
-    API_PORT: int = 4200
+    API_PORT: int = 8000
     DEBUG: bool = True
     
     # =============================================================================
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # =============================================================================
     # CORS SETTINGS
     # =============================================================================
-    CORS_ORIGINS: str = "*"  # Use "*" ou "http://localhost:3000,http://localhost:5173"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://localhost:8080"
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: str = "*"
     CORS_ALLOW_HEADERS: str = "*"
@@ -70,6 +70,21 @@ class Settings(BaseSettings):
     LATEX_TIMEOUT_SECONDS: int = 30
     LATEX_COMPILE_RUNS: int = 2
     
+    # =============================================================================
+    # DATABASE SETTINGS
+    # =============================================================================
+    DATABASE_URL: str = "postgresql://avaliador:passwd@localhost:5432/avaliar"
+    DATABASE_POOL_SIZE: int = 5
+    DATABASE_MAX_OVERFLOW: int = 10
+    DATABASE_POOL_TIMEOUT: int = 30
+    DATABASE_POOL_RECYCLE: int = 3600
+    DATABASE_ECHO: bool = False  # Set to True for SQL logging in development
+
+    # =============================================================================
+    # MIGRATION SETTINGS
+    # =============================================================================
+    ALEMBIC_DATABASE_URL: str = DATABASE_URL
+
     # =============================================================================
     # JWT / AUTH SETTINGS
     # =============================================================================

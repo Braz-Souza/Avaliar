@@ -21,9 +21,11 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
       console.log('Resultado da compilação:', result);
 
       if (result.success && result.pdfUrl) {
-        console.log('PDF URL:', result.pdfUrl);
+        console.log('PDF URL gerada:', result.pdfUrl);
+        console.log('Definindo pdfUrl no state...');
         setPdfUrl(result.pdfUrl);
         setPdfLoadError(false);
+        console.log('PDF URL definida com sucesso');
       } else {
         console.error('Erro na compilação:', result.error);
         setCompilationError(result.error || 'Erro desconhecido na compilação');

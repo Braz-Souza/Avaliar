@@ -89,9 +89,13 @@ export function PreviewPanel({
                     src={pdfUrl}
                     className="w-full h-full border-0"
                     title="PDF Preview"
-                    onLoad={() => console.log('PDF carregado com sucesso')}
-                    onError={() => {
-                      console.error('Erro ao carregar iframe');
+                    onLoad={() => {
+                      console.log('PDF carregado com sucesso no iframe');
+                      console.log('URL do iframe:', pdfUrl);
+                    }}
+                    onError={(e) => {
+                      console.error('Erro ao carregar iframe:', e);
+                      console.error('URL que falhou:', pdfUrl);
                       onPdfLoadError();
                     }}
                   />

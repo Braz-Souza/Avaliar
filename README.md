@@ -2,6 +2,19 @@
 
 ## Desenvolvimento Local
 
+Primeiro configurar a database localmente depois rodar a api depois o front. 
+
+API:
+
+```bash
+cd api
+export API_PORT=8000
+export DEBUG=True
+uv run main.py
+```
+
+FRONT:
+
 ```bash
 cd front
 npm i
@@ -23,7 +36,7 @@ uv run uvicorn main:app --host 0.0.0.0 --port 4200 --workers 4
 
 A aplicação estará disponível em: `http://localhost:4200`
 
-## Configuração Docker
+## Configuração Docker - Atualmente ainda nao configurei o dockerfile perfeitamente
 
 ```bash
 docker build -t avaliar-web:latest .

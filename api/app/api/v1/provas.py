@@ -4,70 +4,81 @@ Router para endpoints de gerenciamento de provas
 TODAS AS ROTAS REQUEREM AUTENTICAÇÃO (via middleware global)
 """
 
-from fastapi import APIRouter, Depends
+from typing import List, Optional
+from uuid import UUID
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 
-from app.models.prova import ProvaData, ProvaInfo
+from app.db.models.prova import ProvaCreate, ProvaUpdate, ProvaRead
 from app.services.prova_manager import ProvaManagerService
+from app.core.database import get_db
 from app.core.dependencies import CurrentUser
 
 router = APIRouter(prefix="/provas", tags=["Provas Management"])
 
 
-def get_prova_manager() -> ProvaManagerService:
+def get_prova_manager(db: Session = Depends(get_db)) -> ProvaManagerService:
     """
-    Dependency para obter instância do serviço de provas
+    Dependency para obter instância do serviço de provas com sessão do banco
     
+    Args:
+        db: Sessão do banco de dados
+        
     Returns:
-        ProvaManagerService
+        ProvaManagerService com sessão do banco
     """
-    return ProvaManagerService()
+    return ProvaManagerService(db)
 
 
-@router.post("", response_model=ProvaInfo, status_code=201)
+@router.post("", response_model=ProvaRead, status_code=201)
 async def save_prova(
-    prova: ProvaData,
+    prova: ProvaCreate,
     user_id: CurrentUser,
     manager: ProvaManagerService = Depends(get_prova_manager)
-) -> ProvaInfo:
+) -> ProvaRead:
     """
     Salva uma nova prova no servidor - REQUER AUTENTICAÇÃO
     
     Args:
-        prova: Dados da prova (nome e conteúdo LaTeX)
+        prova: Dados da prova (nome e conteúdo)
         user_id: ID do usuário autenticado (injetado pelo middleware)
         manager: Serviço de gerenciamento (injetado)
         
     Returns:
-        ProvaInfo com informações da prova salva
+        ProvaRead com informações da prova salva
     """
-    # Aqui você pode usar o user_id para associar a prova ao usuário
-    # Ex: prova.created_by = user_id
-    return await manager.save_prova(prova)
+    # Don't pass created_by since current auth uses username strings, not UUIDs
+    return await manager.save_prova(prova, created_by=None)
 
 
-@router.get("", response_model=list[ProvaInfo])
+@router.get("", response_model=List[ProvaRead])
 async def list_provas(
     user_id: CurrentUser,
+    skip: int = Query(0, ge=0, description="Número de registros para pular"),
+    limit: int = Query(100, ge=1, le=1000, description="Número máximo de registros"),
     manager: ProvaManagerService = Depends(get_prova_manager)
-) -> list[ProvaInfo]:
+) -> List[ProvaRead]:
     """
-    Lista todas as provas salvas - REQUER AUTENTICAÇÃO
+    Lista provas com paginação - REQUER AUTENTICAÇÃO
     
     Args:
         user_id: ID do usuário autenticado (injetado pelo middleware)
+        skip: Número de registros para pular (paginação)
+        limit: Número máximo de registros para retornar
         manager: Serviço de gerenciamento (injetado)
         
     Returns:
-        Lista de ProvaInfo ordenadas por data de modificação
+        Lista de ProvaRead ordenadas por data de modificação
     """
-    return await manager.list_provas()
+    # Don't filter by created_by since current auth uses username strings, not UUIDs
+    return await manager.list_provas(skip=skip, limit=limit, created_by=None)
 
 
-@router.get("/{prova_id}", response_model=ProvaData)
+@router.get("/{prova_id}", response_model=ProvaRead)
 async def get_prova(
-    prova_id: str,
+    prova_id: UUID,
     manager: ProvaManagerService = Depends(get_prova_manager)
-) -> ProvaData:
+) -> ProvaRead:
     """
     Recupera o conteúdo de uma prova salva
     
@@ -76,17 +87,17 @@ async def get_prova(
         manager: Serviço de gerenciamento (injetado)
         
     Returns:
-        ProvaData com nome e conteúdo
+        ProvaRead com dados completos
     """
     return await manager.get_prova(prova_id)
 
 
-@router.put("/{prova_id}", response_model=ProvaInfo)
+@router.put("/{prova_id}", response_model=ProvaRead)
 async def update_prova(
-    prova_id: str,
-    prova: ProvaData,
+    prova_id: UUID,
+    prova: ProvaUpdate,
     manager: ProvaManagerService = Depends(get_prova_manager)
-) -> ProvaInfo:
+) -> ProvaRead:
     """
     Atualiza uma prova existente
     
@@ -96,14 +107,14 @@ async def update_prova(
         manager: Serviço de gerenciamento (injetado)
         
     Returns:
-        ProvaInfo com informações atualizadas
+        ProvaRead com informações atualizadas
     """
     return await manager.update_prova(prova_id, prova)
 
 
 @router.delete("/{prova_id}")
 async def delete_prova(
-    prova_id: str,
+    prova_id: UUID,
     manager: ProvaManagerService = Depends(get_prova_manager)
 ) -> dict:
     """

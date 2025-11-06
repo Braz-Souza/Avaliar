@@ -153,6 +153,8 @@ Campo de descrição sobre a prova...
       // Importa configuração da API
       const { API_CONFIG, getResourceUrl } = await import('../config/api');
 
+      console.log('Enviando requisição de compilação para:', `${API_CONFIG.baseURL}/latex/compile`);
+
       const response = await fetch(`${API_CONFIG.baseURL}/latex/compile`, {
         method: 'POST',
         headers: {
@@ -164,16 +166,24 @@ Campo de descrição sobre a prova...
         }),
       });
 
+      console.log('Resposta recebida:', response.status, response.statusText);
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log('Dados da resposta JSON:', result);
 
       if (result.success) {
+        const originalUrl = result.pdfUrl;
+        const processedUrl = getResourceUrl(originalUrl);
+        console.log('URL original do backend:', originalUrl);
+        console.log('URL processada pelo getResourceUrl:', processedUrl);
+        
         return {
           success: true,
-          pdfUrl: getResourceUrl(result.pdfUrl),
+          pdfUrl: processedUrl,
           logs: result.logs || [],
         };
       } else {
@@ -184,6 +194,7 @@ Campo de descrição sobre a prova...
         };
       }
     } catch (error) {
+      console.error('Erro durante compilação:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network or unknown error',

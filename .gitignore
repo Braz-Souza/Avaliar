@@ -33,8 +33,9 @@ front/npm-debug.log*
 front/yarn-debug.log*
 front/yarn-error.log*
 
-static/pdfs/*
-static/latex_sources/*
+api/static/pdfs/*
+api/static/latex_sources/*
+api/logs/*
 
 .DS_Store
 .vscode

@@ -9,6 +9,43 @@ export const api = axios.create({
   },
 });
 
+// Interceptor para debug
+api.interceptors.request.use(
+  (config) => {
+    console.log('🔵 Request:', {
+      method: config.method,
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      headers: config.headers,
+    });
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request Error:', error);
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  (response) => {
+    console.log('✅ Response:', {
+      status: response.status,
+      url: response.config.url,
+      data: response.data,
+    });
+    return response;
+  },
+  (error) => {
+    console.error('❌ Response Error:', {
+      status: error.response?.status,
+      url: error.config?.url,
+      data: error.response?.data,
+    });
+    return Promise.reject(error);
+  }
+);
+
 // Types
 export interface ProvaData {
   name: string;

@@ -54,6 +54,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         Returns:
             Response da requisição
         """
+        # Permitir requisições OPTIONS (CORS preflight) sem autenticação
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        
         # Permitir rotas públicas
         if self._is_public_route(request.url.path):
             return await call_next(request)
@@ -151,7 +155,10 @@ def setup_middleware(app: FastAPI) -> None:
     Args:
         app: Instância do FastAPI
     """
-    # CORS middleware (deve ser adicionado primeiro)
+    # Middleware de autenticação (adicionado primeiro, executado por último)
+    app.add_middleware(AuthenticationMiddleware)
+    
+    # CORS middleware (adicionado por último, executado primeiro)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
@@ -159,6 +166,3 @@ def setup_middleware(app: FastAPI) -> None:
         allow_methods=settings.cors_methods_list,
         allow_headers=settings.cors_headers_list,
     )
-    
-    # Middleware de autenticação global
-    app.add_middleware(AuthenticationMiddleware)

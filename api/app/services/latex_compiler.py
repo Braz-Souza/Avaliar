@@ -160,7 +160,7 @@ class LaTeXCompilerService:
         
         return CompilationResult(
             success=True,
-            pdfUrl=f"/api/latex/pdfs/temp/{compile_id}.pdf",
+            pdfUrl=f"/latex/pdfs/temp/{compile_id}.pdf",
             logs=result.stdout.split('\n') if result.stdout else []
         )
     

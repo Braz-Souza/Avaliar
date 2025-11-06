@@ -10,6 +10,9 @@ dependencies = [
     "poethepoet>=0.37.0,<0.38",
     "pydantic-settings>=2.0.0",
     "authx>=1.0.0",
+    "sqlmodel>=0.0.27",
+    "psycopg2-binary>=2.9.0,<3.0.0",
+    "alembic>=1.12.0,<2.0.0",
 ]
 
 [tool.uv]

@@ -13,7 +13,6 @@ from app.core.middleware import setup_middleware
 from app.core.events import startup_handler, shutdown_handler
 from app.core.auth import auth
 from app.api.v1.routes import api_router
-from app.api.frontend import router as frontend_router
 
 
 def create_app() -> FastAPI:
@@ -27,8 +26,8 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
-        docs_url="/api/docs",
-        redoc_url="/api/redoc",
+        docs_url="/docs",
+        redoc_url="/redoc",
         description="API para criação e gerenciamento de provas com compilação LaTeX"
     )
     
@@ -58,9 +57,6 @@ def create_app() -> FastAPI:
         )
     
     # Incluir routers da API
-    app.include_router(api_router, prefix="/api")
-    
-    # Incluir router do frontend (deve ser o último)
-    app.include_router(frontend_router)
-    
+    app.include_router(api_router)
+
     return app

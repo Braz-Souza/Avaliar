@@ -22,12 +22,8 @@ function getApiConfig(): ApiConfig {
   // Permite sobrescrita via variável de ambiente
   if (process.env.VITE_API_BASE_URL) {
     baseURL = process.env.VITE_API_BASE_URL;
-  } else if (isProduction || isDocker) {
-    // Em produção ou Docker, usa URL relativa (mesmo servidor)
-    baseURL = '/api';
   } else {
-    // Em desenvolvimento local, usa porta padrão do backend (4200)
-    baseURL = 'http://localhost:4200/api';
+    baseURL = 'http://localhost:8000/api';
   }
   
   return {
@@ -40,20 +36,22 @@ export const API_CONFIG = getApiConfig();
 
 /**
  * Gera URL completa para recursos (PDFs, etc.)
+ * SEMPRE retorna URL absoluta para evitar que o React Router intercepte
  */
 export function getResourceUrl(path: string): string {
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isDocker = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+  // Adiciona /api/ ao path se não começar com ele
+  const fullPath = path.startsWith('/api/') ? path : `/api${path}`;
   
-  // Permite sobrescrita via variável de ambiente
-  if (process.env.VITE_API_BASE_URL) {
-    const baseUrl = process.env.VITE_API_BASE_URL.replace('/api', '');
-    return `${baseUrl}${path}`;
-  } else if (isProduction || isDocker) {
-    // Em produção ou Docker, usa URL relativa
-    return path;
-  } else {
-    // Em desenvolvimento, usa URL completa com porta 4200
-    return `http://localhost:4200${path}`;
+  // Para recursos (PDFs), sempre usar URL absoluta
+  // Isso evita que o React Router tente interpretar como rota
+  if (typeof window !== 'undefined') {
+    const baseUrl = process.env.VITE_API_BASE_URL 
+      ? process.env.VITE_API_BASE_URL.replace('/api', '')
+      : 'http://localhost:8000';
+    
+    return `${baseUrl}${fullPath}`;
   }
+  
+  // Fallback para SSR (não deveria acontecer com PDFs)
+  return fullPath;
 }

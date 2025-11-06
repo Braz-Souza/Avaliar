@@ -7,7 +7,7 @@ from fastapi import APIRouter
 from app.api.v1 import auth, latex, provas, system
 
 # Router principal da API v1
-api_router = APIRouter()
+api_router = APIRouter(prefix="/api")
 
 # Incluir todos os routers v1
 api_router.include_router(auth.router)
