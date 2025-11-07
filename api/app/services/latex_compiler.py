@@ -261,58 +261,94 @@ class LaTeXCompilerService:
         """
         return self.pdf_metadata.get(compile_id)
 
-    def generate_answer_sheet_latex(self, latex_content: str) -> str:
+    def _extract_questions_from_latex(self, latex_content: str, include_correct_answers: bool = False) -> list[dict]:
         """
-        Gera código LaTeX para cartão resposta baseado no conteúdo da prova
+        Extrai informações sobre questões do conteúdo LaTeX
 
         Args:
-            latex_content: Código LaTeX da prova original
+            latex_content: Código LaTeX da prova
+            include_correct_answers: Se True, inclui índices das respostas corretas
 
         Returns:
-            Código LaTeX do cartão resposta
+            Lista de dicionários com informações das questões
         """
         import re
 
-        # Extrair questões do conteúdo LaTeX
         questions = []
 
         # Padrão para questões de múltipla escolha AMC (simples e múltipla)
-        question_pattern = r'\\begin\{(?:question|questionmult)\}\{([^}]*)\}.*?\\end\{(?:question|questionmult)\}'
+        question_pattern = r'\\begin\{(?:question|questionmult)\}\{([^}]*)\}(.*?)\\end\{(?:question|questionmult)\}'
         question_matches = re.finditer(question_pattern, latex_content, re.DOTALL)
 
         for idx, match in enumerate(question_matches, start=1):
             question_name = match.group(1) or f"Q{idx}"
+            question_content = match.group(2)
 
             # Contar número de alternativas
             choices_pattern = r'\\(?:correct|wrong)?choice'
-            choices = len(re.findall(choices_pattern, match.group(0)))
+            choices = len(re.findall(choices_pattern, question_content))
+
+            question_data = {
+                'number': idx,
+                'name': question_name,
+                'choices': choices
+            }
+
+            if include_correct_answers and choices > 0:
+                # Encontrar índices das respostas corretas
+                correct_answers = []
+                choice_matches = re.finditer(r'\\(correct|wrong)choice', question_content)
+                for choice_idx, choice_match in enumerate(choice_matches):
+                    if choice_match.group(1) == 'correct':
+                        correct_answers.append(choice_idx)
+                question_data['correct_answers'] = correct_answers
 
             if choices > 0:
-                questions.append({
-                    'number': idx,
-                    'name': question_name,
-                    'choices': choices
-                })
+                questions.append(question_data)
 
         # Se não encontrou questões com padrão AMC, tentar padrão genérico
         if not questions:
             # Tentar encontrar questões pelo padrão: \textbf{N.} onde N é o número da questão
             # seguido de \begin{enumerate}...\end{enumerate}
-            question_number_pattern = r'\\textbf\{(\d+)\.\}.*?\\begin\{enumerate\}(.*?)\\end\{enumerate\}'
+            question_number_pattern = r'\\textbf\{(\d+)\.\}(.*?)\\begin\{enumerate\}(.*?)\\end\{enumerate\}'
             question_matches = re.finditer(question_number_pattern, latex_content, re.DOTALL)
 
             for match in question_matches:
                 question_num = int(match.group(1))
-                enum_content = match.group(2)
-                # Contar itens dentro deste enumerate específico
-                items = re.findall(r'\\item', enum_content)
-                num_choices = len(items)
+                question_text = match.group(2)
+                enum_content = match.group(3)
 
-                questions.append({
-                    'number': question_num,
-                    'name': f'Q{question_num}',
-                    'choices': num_choices
-                })
+                # Encontrar todos os itens e verificar quais são corretos
+                # Padrão: \item seguido opcionalmente de % CORRECT ou % correct (comentário)
+                item_pattern = r'\\item\s*(.*?)(?=\\item|$)'
+                items = re.finditer(item_pattern, enum_content, re.DOTALL)
+
+                items_list = []
+                correct_answers = []
+
+                for item_idx, item_match in enumerate(items):
+                    item_content = item_match.group(1)
+                    items_list.append(item_content)
+
+                    # Verificar se tem marcação de correta
+                    # Aceita vários formatos: % CORRECT, % correct, %CORRECT, % CORRETA, etc.
+                    if include_correct_answers:
+                        if re.search(r'%\s*(?:CORRECT|correct|CORRETA|correta)', item_content):
+                            correct_answers.append(item_idx)
+
+                num_choices = len(items_list)
+
+                if num_choices > 0:
+                    question_data = {
+                        'number': question_num,
+                        'name': f'Q{question_num}',
+                        'choices': num_choices
+                    }
+
+                    if include_correct_answers:
+                        question_data['correct_answers'] = correct_answers
+
+                    questions.append(question_data)
 
         # Se ainda não encontrou, criar template básico com 10 questões
         if not questions:
@@ -320,8 +356,35 @@ class LaTeXCompilerService:
                 {'number': i, 'name': f'Q{i}', 'choices': 5}
                 for i in range(1, 11)
             ]
+            if include_correct_answers:
+                for q in questions:
+                    q['correct_answers'] = []
+
+        return questions
+
+    def generate_answer_sheet_latex(self, latex_content: str, is_answer_key: bool = False) -> str:
+        """
+        Gera código LaTeX para cartão resposta baseado no conteúdo da prova
+
+        Args:
+            latex_content: Código LaTeX da prova original
+            is_answer_key: Se True, gera gabarito com respostas corretas marcadas
+
+        Returns:
+            Código LaTeX do cartão resposta ou gabarito
+        """
+        # Extrair questões do conteúdo LaTeX
+        questions = self._extract_questions_from_latex(latex_content, include_correct_answers=is_answer_key)
+
+        # Log de debug para gabarito
+        if is_answer_key:
+            logger.debug(f"Gerando gabarito com {len(questions)} questões")
+            for q in questions:
+                if 'correct_answers' in q:
+                    logger.debug(f"Questão {q['number']}: respostas corretas = {q['correct_answers']}")
 
         # Gerar LaTeX do cartão resposta
+        title = "GABARITO" if is_answer_key else "CARTÃO RESPOSTA"
         answer_sheet_latex = r'''\documentclass[12pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
 \usepackage[brazil]{babel}
@@ -329,19 +392,24 @@ class LaTeXCompilerService:
 \usepackage{array}
 \usepackage{multirow}
 \usepackage{hhline}
+\usepackage{amssymb}
+\usepackage{wasysym}
 
-\title{Cartão Resposta}
+\title{''' + title + r'''}
 \author{}
 \date{}
 
 \begin{document}
 
 \begin{center}
-{\LARGE \textbf{CARTÃO RESPOSTA}}
+{\LARGE \textbf{''' + title + r'''}}
 \end{center}
 
 \vspace{0.5cm}
+'''
 
+        # Adicionar campos de identificação tanto no cartão resposta quanto no gabarito
+        answer_sheet_latex += r'''
 \noindent
 \begin{tabular}{|p{6cm}|p{9cm}|}
 \hline
@@ -354,7 +422,10 @@ class LaTeXCompilerService:
 \end{tabular}
 
 \vspace{1cm}
+'''
 
+        # Instruções idênticas para cartão resposta e gabarito
+        answer_sheet_latex += r'''
 \noindent
 \textbf{Instruções:}
 \begin{itemize}
@@ -365,7 +436,6 @@ class LaTeXCompilerService:
 \end{itemize}
 
 \vspace{0.5cm}
-
 '''
 
         # Calcular o número máximo de alternativas
@@ -436,10 +506,15 @@ class LaTeXCompilerService:
                     # Número da questão
                     data_row += str(q['number'])
 
-                    # Círculos para as alternativas
+                    # Círculos ou quadrados para as alternativas
                     for i in range(max_choices):
                         if i < q['choices']:
-                            data_row += r' & $\bigcirc$'
+                            # Verificar se esta alternativa é a correta (para gabarito)
+                            is_correct = is_answer_key and 'correct_answers' in q and i in q['correct_answers']
+                            if is_correct:
+                                data_row += r' & $\CIRCLE$'  # Círculo preenchido bem maior para resposta correta
+                            else:
+                                data_row += r' & $\bigcirc$'  # Círculo vazio
                         else:
                             data_row += r' & '
                 else:
@@ -483,5 +558,23 @@ class LaTeXCompilerService:
         Returns:
             CompilationResult com sucesso/erro e logs
         """
-        answer_sheet_latex = self.generate_answer_sheet_latex(latex_content)
+        answer_sheet_latex = self.generate_answer_sheet_latex(latex_content, is_answer_key=False)
         return await self.compile(answer_sheet_latex, filename)
+
+    async def compile_answer_key(
+        self,
+        latex_content: str,
+        filename: str = "gabarito"
+    ) -> CompilationResult:
+        """
+        Compila gabarito (cartão resposta com respostas corretas marcadas) a partir do conteúdo LaTeX da prova
+
+        Args:
+            latex_content: Código LaTeX da prova original
+            filename: Nome base do arquivo (sem extensão)
+
+        Returns:
+            CompilationResult com sucesso/erro e logs
+        """
+        answer_key_latex = self.generate_answer_sheet_latex(latex_content, is_answer_key=True)
+        return await self.compile(answer_key_latex, filename)

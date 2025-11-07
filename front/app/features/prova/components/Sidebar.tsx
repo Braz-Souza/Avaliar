@@ -3,7 +3,7 @@
  * Navigation and actions sidebar for prova editor
  */
 
-import { ArrowLeft, Download, FileText, Eye, Save, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Eye, Save, ClipboardList, ClipboardCheck } from 'lucide-react';
 import { NavLink } from 'react-router';
 import type { PreviewMode } from '../../../types/question';
 
@@ -17,6 +17,7 @@ interface SidebarProps {
   onDownloadPDF: () => void;
   onDownloadLatex: () => void;
   onDownloadAnswerSheet: () => void;
+  onDownloadAnswerKey: () => void;
 }
 
 export function Sidebar({
@@ -29,6 +30,7 @@ export function Sidebar({
   onDownloadPDF,
   onDownloadLatex,
   onDownloadAnswerSheet,
+  onDownloadAnswerKey,
 }: SidebarProps) {
   return (
     <aside className="w-72 bg-base-100 shadow-2xl flex flex-col border-r border-base-300">
@@ -126,6 +128,15 @@ export function Sidebar({
               <ClipboardList className="w-5 h-5" />
               <span className="flex-1 text-left">Cartão Resposta</span>
             </button>
+            <button
+              className={`btn w-full gap-2 justify-start ${
+                previewMode === 'answer-key' ? 'btn-primary' : 'btn-ghost'
+              }`}
+              onClick={() => onPreviewModeChange('answer-key')}
+            >
+              <ClipboardCheck className="w-5 h-5" />
+              <span className="flex-1 text-left">Gabarito</span>
+            </button>
           </div>
         </div>
 
@@ -153,13 +164,23 @@ export function Sidebar({
               <span className="flex-1 text-left">Baixar LaTeX</span>
             </button>
             <button
-              className="btn btn-outline btn-info w-full gap-2 justify-start"
+              className="btn btn-outline btn-primary w-full gap-2 justify-start"
               onClick={onDownloadAnswerSheet}
               disabled={isCompiling}
             >
               <ClipboardList className="w-5 h-5" />
               <span className="flex-1 text-left">
                 {isCompiling ? 'Gerando...' : 'Baixar Cartão Resposta'}
+              </span>
+            </button>
+            <button
+              className="btn btn-outline btn-primary w-full gap-2 justify-start"
+              onClick={onDownloadAnswerKey}
+              disabled={isCompiling}
+            >
+              <ClipboardCheck className="w-5 h-5" />
+              <span className="flex-1 text-left">
+                {isCompiling ? 'Gerando...' : 'Baixar Gabarito'}
               </span>
             </button>
           </div>

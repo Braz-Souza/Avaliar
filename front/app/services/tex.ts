@@ -108,8 +108,12 @@ export class LaTeXCompiler {
         const isCorrect = line.includes('*');
         const optionText = line.replace(/^[a-z]\)/, '').replace('*', '').trim();
 
-        // Formato simples: apenas lista as opcoes sem marcacao especial
-        currentChoices.push(`  \\item ${optionText}`)
+        // Adiciona marcacao de resposta correta como comentario
+        if (isCorrect) {
+          currentChoices.push(`  \\item ${optionText} % CORRECT`)
+        } else {
+          currentChoices.push(`  \\item ${optionText}`)
+        }
       } else if (line && !line.startsWith('%')) {
         // Texto adicional ou conteudo LaTeX direto
         processed += line + '\n';
@@ -241,6 +245,65 @@ export class LaTeXCompiler {
       }
     } catch (error) {
       console.error('Erro durante compilacao do cartao resposta:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network or unknown error',
+      };
+    }
+  }
+
+  /**
+   * Compila gabarito (cartão resposta com respostas corretas marcadas)
+   */
+  static async compileAnswerKey(content: string, title?: string): Promise<CompilationResult> {
+    try {
+      const latexContent = this.generateAMCDocument(content, title);
+
+      // Importa configuracao da API
+      const { API_CONFIG, getResourceUrl } = await import('../config/api');
+
+      console.log('Enviando requisicao de compilacao do gabarito para:', `${API_CONFIG.baseURL}/latex/compile-answer-key`);
+
+      const response = await fetch(`${API_CONFIG.baseURL}/latex/compile-answer-key`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          latex: latexContent,
+          filename: 'gabarito'
+        }),
+      });
+
+      console.log('Resposta recebida do gabarito:', response.status, response.statusText);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Dados da resposta do gabarito:', result);
+
+      if (result.success) {
+        const originalUrl = result.pdfUrl;
+        const processedUrl = getResourceUrl(originalUrl);
+        console.log('URL original do gabarito:', originalUrl);
+        console.log('URL processada do gabarito:', processedUrl);
+
+        return {
+          success: true,
+          pdfUrl: processedUrl,
+          logs: result.logs || [],
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Answer key compilation failed',
+          logs: result.logs || [],
+        };
+      }
+    } catch (error) {
+      console.error('Erro durante compilacao do gabarito:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network or unknown error',

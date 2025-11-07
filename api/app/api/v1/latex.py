@@ -58,6 +58,24 @@ async def compile_answer_sheet(
     return await compiler.compile_answer_sheet(request.latex, "cartao_resposta")
 
 
+@router.post("/compile-answer-key", response_model=CompilationResult)
+async def compile_answer_key(
+    request: LaTeXCompileRequest,
+    compiler: LaTeXCompilerService = Depends(get_compiler_service)
+) -> CompilationResult:
+    """
+    Compila gabarito (cartão resposta com respostas corretas marcadas) baseado no código LaTeX da prova
+
+    Args:
+        request: Requisição com código LaTeX da prova
+        compiler: Serviço de compilação (injetado)
+
+    Returns:
+        CompilationResult com sucesso/erro e logs
+    """
+    return await compiler.compile_answer_key(request.latex, "gabarito")
+
+
 @router.get("/pdfs/temp/{filename}")
 async def get_temp_pdf(filename: str) -> FileResponse:
     """

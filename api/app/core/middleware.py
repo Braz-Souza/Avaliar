@@ -30,7 +30,8 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         "/api/system/health",
         "/api/system/info",
         "/api/latex/compile", # TEMPORARY FIX
-        "/api/latex/compile-answer-sheet" # Answer sheet endpoint
+        "/api/latex/compile-answer-sheet", # Answer sheet endpoint
+        "/api/latex/compile-answer-key" # Answer key endpoint
     }
 
     # Prefixos de rotas públicas (frontend, assets, etc)

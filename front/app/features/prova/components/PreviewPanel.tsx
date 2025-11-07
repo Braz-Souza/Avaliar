@@ -18,6 +18,9 @@ interface PreviewPanelProps {
   answerSheetUrl: string | null;
   answerSheetLoadError: boolean;
   onAnswerSheetLoadError: () => void;
+  answerKeyUrl: string | null;
+  answerKeyLoadError: boolean;
+  onAnswerKeyLoadError: () => void;
 }
 
 export function PreviewPanel({
@@ -30,6 +33,9 @@ export function PreviewPanel({
   answerSheetUrl,
   answerSheetLoadError,
   onAnswerSheetLoadError,
+  answerKeyUrl,
+  answerKeyLoadError,
+  onAnswerKeyLoadError,
 }: PreviewPanelProps) {
   const getLatexPreview = () => {
     return LaTeXCompiler.generateAMCDocument(latexContent);
@@ -43,6 +49,18 @@ export function PreviewPanel({
         pdfLoadError={answerSheetLoadError}
         isCompiling={isCompiling}
         onPdfLoadError={onAnswerSheetLoadError}
+      />
+    );
+  }
+
+  // Show answer key preview
+  if (previewMode === 'answer-key') {
+    return (
+      <AnswerSheetPreview
+        answerSheetUrl={answerKeyUrl}
+        pdfLoadError={answerKeyLoadError}
+        isCompiling={isCompiling}
+        onPdfLoadError={onAnswerKeyLoadError}
       />
     );
   }

@@ -12,6 +12,8 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
   const [pdfLoadError, setPdfLoadError] = useState(false);
   const [answerSheetUrl, setAnswerSheetUrl] = useState<string | null>(null);
   const [answerSheetLoadError, setAnswerSheetLoadError] = useState(false);
+  const [answerKeyUrl, setAnswerKeyUrl] = useState<string | null>(null);
+  const [answerKeyLoadError, setAnswerKeyLoadError] = useState(false);
 
   const handleCompile = async () => {
     setIsCompiling(true);
@@ -86,6 +88,40 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     }
   };
 
+  const handleCompileAnswerKey = async () => {
+    setIsCompiling(true);
+    setCompilationError(null);
+
+    try {
+      console.log('Compilando gabarito...');
+      const result = await LaTeXCompiler.compileAnswerKey(latexContent, provaTitle);
+      console.log('Resultado da compilação do gabarito:', result);
+
+      if (result.success && result.pdfUrl) {
+        console.log('Gabarito URL gerada:', result.pdfUrl);
+        setAnswerKeyUrl(result.pdfUrl);
+        setAnswerKeyLoadError(false);
+        console.log('Gabarito URL definida com sucesso');
+      } else {
+        console.error('Erro na compilação do gabarito:', result.error);
+        setCompilationError(result.error || 'Erro desconhecido na compilação do gabarito');
+      }
+    } catch (error) {
+      console.error('Erro ao compilar gabarito:', error);
+      setCompilationError('Erro ao compilar o gabarito: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    } finally {
+      setIsCompiling(false);
+    }
+  };
+
+  const handleDownloadAnswerKey = () => {
+    if (answerKeyUrl) {
+      LaTeXCompiler.downloadPDF(answerKeyUrl);
+    } else {
+      handleCompileAnswerKey();
+    }
+  };
+
   // Auto-compile when content changes (debounced)
   useEffect(() => {
     if (!autoCompile) return;
@@ -94,6 +130,7 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
       if (latexContent.trim()) {
         handleCompile();
         handleCompileAnswerSheet();
+        handleCompileAnswerKey();
       }
     }, 1000);
 
@@ -110,6 +147,11 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     setAnswerSheetLoadError(false);
   }, [answerSheetUrl]);
 
+  // Reset answer key load error when URL changes
+  useEffect(() => {
+    setAnswerKeyLoadError(false);
+  }, [answerKeyUrl]);
+
   return {
     pdfUrl,
     isCompiling,
@@ -124,5 +166,10 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     setAnswerSheetLoadError,
     handleCompileAnswerSheet,
     handleDownloadAnswerSheet,
+    answerKeyUrl,
+    answerKeyLoadError,
+    setAnswerKeyLoadError,
+    handleCompileAnswerKey,
+    handleDownloadAnswerKey,
   };
 }
