@@ -18,78 +18,71 @@ export class LaTeXCompiler {
   private static amcTemplate: AMCTemplate = {
     header: `\\documentclass[a4paper]{article}
 
-\\usepackage[utf8x]{inputenc}
+\\usepackage[utf8]{inputenc}
 \\usepackage[T1]{fontenc}
-\\usepackage[box,completemulti]{automultiplechoice}
+\\usepackage[margin=2cm]{geometry}
+\\usepackage{enumitem}
+\\usepackage{array}
 
 \\begin{document}
-% Remove DRAFT watermark and examination message
-\\AMCtext{draft}{}
-\\AMCtext{message}{}
-\\def\\AMC@loc@draft{}
-\\def\\AMC@loc@message{}
-\\AMCrandomseed{1237893}
 
-\\onecopy{1}{
+\\noindent
+\\begin{tabular}{|p{0.15\\textwidth}|p{0.78\\textwidth}|}
+\\hline
+\\textbf{PROVA} & \\textbf{%TITLE%} \\\\
+\\hline
+\\end{tabular}
 
-%%% beginning of the test sheet header:
-\\noindent{\\bf QCM  \\hfill PROVA}
+\\vspace{0.2cm}
 
-\\vspace*{.5cm}
-\\begin{minipage}{.4\\linewidth}
-\\centering\\large\\bf Prova\\\\ Avaliação\\end{minipage}
-\\namefield{\\fbox{
-                \\begin{minipage}{.5\\linewidth}
-                  Nome completo:
+\\noindent
+\\begin{tabular}{|p{0.08\\textwidth}|p{0.27\\textwidth}|p{0.16\\textwidth}|p{0.16\\textwidth}|p{0.06\\textwidth}|p{0.10\\textwidth}|}
+\\hline
+\\textbf{NOME} & & \\textbf{MATRICULA} & & \\textbf{DATA} & \\\\
+\\hline
+\\end{tabular}
 
-                  \\vspace*{.5cm}\\dotfill
-                  \\vspace*{1mm}
-                \\end{minipage}
-         }}
+\\vspace{0.5cm}
 
-\\begin{center}\\em
-
-Campo de descrição sobre a prova...
-
-\\end{center}
-\\vspace{1ex}
-
-%%% end of the header
 `,
-    question: `\\begin{question}{q%ID%}
-  %QUESTION%
-  \\begin{choices}
-    %CHOICES%
-  \\end{choices}
-\\end{question}`,
-    questionMultiple: `\\begin{questionmult}{qm%ID%}
-  %QUESTION%
-  \\begin{choices}
-    %CHOICES%
-  \\end{choices}
-\\end{questionmult}`,
+    question: `\\noindent\\textbf{%ID%.} %QUESTION%
+
+\\begin{enumerate}[label=\\alph*), leftmargin=1cm, itemsep=0pt, topsep=2pt]
+%CHOICES%
+\\end{enumerate}
+
+\\vspace{0.3cm}
+`,
+    questionMultiple: `\\noindent\\textbf{%ID%.} %QUESTION% \\textit{(multipla escolha)}
+
+\\begin{enumerate}[label=\\alph*), leftmargin=1cm, itemsep=0pt, topsep=2pt]
+%CHOICES%
+\\end{enumerate}
+
+\\vspace{0.3cm}
+`,
     footer: `
-}
 \\end{document}`
   };
 
-  static generateAMCDocument(content: string): string {
-    // Se o conteúdo já contém estrutura LaTeX completa, retorna como está
+  static generateAMCDocument(content: string, title: string = 'Avaliacao'): string {
+    // Se o conteudo ja contem estrutura LaTeX completa, retorna como esta
     if (content.includes('\\documentclass') && content.includes('\\begin{document}')) {
       return content;
     }
 
-    // Caso contrário, usa o template AMC
+    // Caso contrario, usa o template AMC
     const processedContent = this.processQuestionsContent(content);
-    return this.amcTemplate.header + processedContent + this.amcTemplate.footer;
+    const header = this.amcTemplate.header.replace('%TITLE%', title);
+    return header + processedContent + this.amcTemplate.footer;
   }
 
   private static processQuestionsContent(content: string): string {
-    // Processa questões simples no formato:
+    // Processa questoes simples no formato:
     // Q: Pergunta?
-    // a) Opção A
-    // b) Opção B *
-    // c) Opção C
+    // a) Opcao A
+    // b) Opcao B *
+    // c) Opcao C
 
     const lines = content.split('\n');
     let processed = '';
@@ -102,7 +95,7 @@ Campo de descrição sobre a prova...
       line = line.trim();
 
       if (line.startsWith('Q:') || line.startsWith('QM:')) {
-        // Finaliza questão anterior se existir
+        // Finaliza questao anterior se existir
         if (currentQuestion) {
           processed += this.buildQuestion(currentQuestion, currentChoices, isMultiple, questionId++);
           currentChoices = [];
@@ -111,22 +104,19 @@ Campo de descrição sobre a prova...
         isMultiple = line.startsWith('QM:');
         currentQuestion = line.substring(line.indexOf(':') + 1).trim();
       } else if (line.match(/^[a-z]\)/)) {
-        // Opção de resposta
+        // Opcao de resposta
         const isCorrect = line.includes('*');
         const optionText = line.replace(/^[a-z]\)/, '').replace('*', '').trim();
 
-        if (isCorrect) {
-          currentChoices.push(`\\correctchoice{${optionText}}`);
-        } else {
-          currentChoices.push(`\\wrongchoice{${optionText}}`);
-        }
+        // Formato simples: apenas lista as opcoes sem marcacao especial
+        currentChoices.push(`  \\item ${optionText}`)
       } else if (line && !line.startsWith('%')) {
-        // Texto adicional ou conteúdo LaTeX direto
+        // Texto adicional ou conteudo LaTeX direto
         processed += line + '\n';
       }
     }
 
-    // Finaliza última questão
+    // Finaliza ultima questao
     if (currentQuestion) {
       processed += this.buildQuestion(currentQuestion, currentChoices, isMultiple, questionId);
     }
@@ -139,21 +129,21 @@ Campo de descrição sobre a prova...
     return template
       .replace('%ID%', id.toString())
       .replace('%QUESTION%', question)
-      .replace('%CHOICES%', choices.join('\n    ')) + '\n\n';
+      .replace('%CHOICES%', choices.join('\n')) + '\n';
   }
 
-  static async compileToTeX(content: string): Promise<string> {
-    return this.generateAMCDocument(content);
+  static async compileToTeX(content: string, title?: string): Promise<string> {
+    return this.generateAMCDocument(content, title);
   }
 
-  static async compileToPDF(content: string): Promise<CompilationResult> {
+  static async compileToPDF(content: string, title?: string): Promise<CompilationResult> {
     try {
-      const latexContent = this.generateAMCDocument(content);
+      const latexContent = this.generateAMCDocument(content, title);
 
-      // Importa configuração da API
+      // Importa configuracao da API
       const { API_CONFIG, getResourceUrl } = await import('../config/api');
 
-      console.log('Enviando requisição de compilação para:', `${API_CONFIG.baseURL}/latex/compile`);
+      console.log('Enviando requisicao de compilacao para:', `${API_CONFIG.baseURL}/latex/compile`);
 
       const response = await fetch(`${API_CONFIG.baseURL}/latex/compile`, {
         method: 'POST',
@@ -194,7 +184,7 @@ Campo de descrição sobre a prova...
         };
       }
     } catch (error) {
-      console.error('Erro durante compilação:', error);
+      console.error('Erro durante compilacao:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network or unknown error',
@@ -202,14 +192,14 @@ Campo de descrição sobre a prova...
     }
   }
 
-  static async compileAnswerSheet(content: string): Promise<CompilationResult> {
+  static async compileAnswerSheet(content: string, title?: string): Promise<CompilationResult> {
     try {
-      const latexContent = this.generateAMCDocument(content);
+      const latexContent = this.generateAMCDocument(content, title);
 
-      // Importa configuração da API
+      // Importa configuracao da API
       const { API_CONFIG, getResourceUrl } = await import('../config/api');
 
-      console.log('Enviando requisição de compilação do cartão resposta para:', `${API_CONFIG.baseURL}/latex/compile-answer-sheet`);
+      console.log('Enviando requisicao de compilacao do cartao resposta para:', `${API_CONFIG.baseURL}/latex/compile-answer-sheet`);
 
       const response = await fetch(`${API_CONFIG.baseURL}/latex/compile-answer-sheet`, {
         method: 'POST',
@@ -222,20 +212,20 @@ Campo de descrição sobre a prova...
         }),
       });
 
-      console.log('Resposta recebida do cartão resposta:', response.status, response.statusText);
+      console.log('Resposta recebida do cartao resposta:', response.status, response.statusText);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('Dados da resposta do cartão resposta:', result);
+      console.log('Dados da resposta do cartao resposta:', result);
 
       if (result.success) {
         const originalUrl = result.pdfUrl;
         const processedUrl = getResourceUrl(originalUrl);
-        console.log('URL original do cartão resposta:', originalUrl);
-        console.log('URL processada do cartão resposta:', processedUrl);
+        console.log('URL original do cartao resposta:', originalUrl);
+        console.log('URL processada do cartao resposta:', processedUrl);
 
         return {
           success: true,
@@ -250,7 +240,7 @@ Campo de descrição sobre a prova...
         };
       }
     } catch (error) {
-      console.error('Erro durante compilação do cartão resposta:', error);
+      console.error('Erro durante compilacao do cartao resposta:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network or unknown error',
@@ -258,8 +248,8 @@ Campo de descrição sobre a prova...
     }
   }
 
-  static downloadLaTeX(content: string, filename: string = 'prova.tex'): void {
-    const latexContent = this.generateAMCDocument(content);
+  static downloadLaTeX(content: string, filename: string = 'prova.tex', title?: string): void {
+    const latexContent = this.generateAMCDocument(content, title);
     const blob = new Blob([latexContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
 

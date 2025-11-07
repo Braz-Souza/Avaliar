@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import LaTeXCompiler from '../services/tex';
 
-export function useLatexCompiler(latexContent: string, autoCompile: boolean = true) {
+export function useLatexCompiler(latexContent: string, autoCompile: boolean = true, provaTitle?: string) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
   const [compilationError, setCompilationError] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
 
     try {
       console.log('Iniciando compilação...');
-      const result = await LaTeXCompiler.compileToPDF(latexContent);
+      const result = await LaTeXCompiler.compileToPDF(latexContent, provaTitle);
       console.log('Resultado da compilação:', result);
 
       if (result.success && result.pdfUrl) {
@@ -49,7 +49,7 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
   };
 
   const handleDownloadLatex = () => {
-    LaTeXCompiler.downloadLaTeX(latexContent);
+    LaTeXCompiler.downloadLaTeX(latexContent, 'prova.tex', provaTitle);
   };
 
   const handleCompileAnswerSheet = async () => {
@@ -58,7 +58,7 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
 
     try {
       console.log('Compilando cartão resposta...');
-      const result = await LaTeXCompiler.compileAnswerSheet(latexContent);
+      const result = await LaTeXCompiler.compileAnswerSheet(latexContent, provaTitle);
       console.log('Resultado da compilação do cartão resposta:', result);
 
       if (result.success && result.pdfUrl) {
@@ -98,7 +98,7 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [latexContent, autoCompile]);
+  }, [latexContent, autoCompile, provaTitle]);
 
   // Reset PDF load error when URL changes
   useEffect(() => {

@@ -30,8 +30,8 @@ export default function ProvaEditor() {
 
   // Custom hooks for state management
   const editor = useProvaEditor();
-  const compiler = useLatexCompiler(editor.latexContent);
   const saver = useProvaSave(provaId);
+  const compiler = useLatexCompiler(editor.latexContent, true, saver.provaName);
 
   // Load prova if ID is provided
   useEffect(() => {

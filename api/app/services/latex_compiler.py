@@ -296,20 +296,23 @@ class LaTeXCompilerService:
 
         # Se não encontrou questões com padrão AMC, tentar padrão genérico
         if not questions:
-            # Tentar encontrar enumerações com itens
-            enum_pattern = r'\\begin\{enumerate\}(.*?)\\end\{enumerate\}'
-            enum_matches = re.finditer(enum_pattern, latex_content, re.DOTALL)
+            # Tentar encontrar questões pelo padrão: \textbf{N.} onde N é o número da questão
+            # seguido de \begin{enumerate}...\end{enumerate}
+            question_number_pattern = r'\\textbf\{(\d+)\.\}.*?\\begin\{enumerate\}(.*?)\\end\{enumerate\}'
+            question_matches = re.finditer(question_number_pattern, latex_content, re.DOTALL)
 
-            for enum_match in enum_matches:
-                items = re.findall(r'\\item', enum_match.group(1))
-                if items:
-                    # Assumir 5 alternativas por questão (padrão)
-                    for i in range(len(items)):
-                        questions.append({
-                            'number': len(questions) + 1,
-                            'name': f'Q{len(questions) + 1}',
-                            'choices': 5
-                        })
+            for match in question_matches:
+                question_num = int(match.group(1))
+                enum_content = match.group(2)
+                # Contar itens dentro deste enumerate específico
+                items = re.findall(r'\\item', enum_content)
+                num_choices = len(items)
+
+                questions.append({
+                    'number': question_num,
+                    'name': f'Q{question_num}',
+                    'choices': num_choices
+                })
 
         # Se ainda não encontrou, criar template básico com 10 questões
         if not questions:
