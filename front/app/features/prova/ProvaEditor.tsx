@@ -59,6 +59,7 @@ export default function ProvaEditor() {
         onSave={saver.openSaveDialog}
         onDownloadPDF={compiler.handleDownloadPDF}
         onDownloadLatex={compiler.handleDownloadLatex}
+        onDownloadAnswerSheet={compiler.handleDownloadAnswerSheet}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -85,6 +86,9 @@ export default function ProvaEditor() {
           isCompiling={compiler.isCompiling}
           latexContent={editor.latexContent}
           onPdfLoadError={() => compiler.setPdfLoadError(true)}
+          answerSheetUrl={compiler.answerSheetUrl}
+          answerSheetLoadError={compiler.answerSheetLoadError}
+          onAnswerSheetLoadError={() => compiler.setAnswerSheetLoadError(true)}
         />
       </div>
 

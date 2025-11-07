@@ -10,6 +10,8 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
   const [isCompiling, setIsCompiling] = useState(false);
   const [compilationError, setCompilationError] = useState<string | null>(null);
   const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [answerSheetUrl, setAnswerSheetUrl] = useState<string | null>(null);
+  const [answerSheetLoadError, setAnswerSheetLoadError] = useState(false);
 
   const handleCompile = async () => {
     setIsCompiling(true);
@@ -50,6 +52,40 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     LaTeXCompiler.downloadLaTeX(latexContent);
   };
 
+  const handleCompileAnswerSheet = async () => {
+    setIsCompiling(true);
+    setCompilationError(null);
+
+    try {
+      console.log('Compilando cartão resposta...');
+      const result = await LaTeXCompiler.compileAnswerSheet(latexContent);
+      console.log('Resultado da compilação do cartão resposta:', result);
+
+      if (result.success && result.pdfUrl) {
+        console.log('Cartão resposta URL gerada:', result.pdfUrl);
+        setAnswerSheetUrl(result.pdfUrl);
+        setAnswerSheetLoadError(false);
+        console.log('Cartão resposta URL definida com sucesso');
+      } else {
+        console.error('Erro na compilação do cartão resposta:', result.error);
+        setCompilationError(result.error || 'Erro desconhecido na compilação do cartão resposta');
+      }
+    } catch (error) {
+      console.error('Erro ao compilar cartão resposta:', error);
+      setCompilationError('Erro ao compilar o cartão resposta: ' + (error instanceof Error ? error.message : 'Erro desconhecido'));
+    } finally {
+      setIsCompiling(false);
+    }
+  };
+
+  const handleDownloadAnswerSheet = () => {
+    if (answerSheetUrl) {
+      LaTeXCompiler.downloadPDF(answerSheetUrl);
+    } else {
+      handleCompileAnswerSheet();
+    }
+  };
+
   // Auto-compile when content changes (debounced)
   useEffect(() => {
     if (!autoCompile) return;
@@ -57,6 +93,7 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     const timer = setTimeout(() => {
       if (latexContent.trim()) {
         handleCompile();
+        handleCompileAnswerSheet();
       }
     }, 1000);
 
@@ -68,6 +105,11 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     setPdfLoadError(false);
   }, [pdfUrl]);
 
+  // Reset answer sheet load error when URL changes
+  useEffect(() => {
+    setAnswerSheetLoadError(false);
+  }, [answerSheetUrl]);
+
   return {
     pdfUrl,
     isCompiling,
@@ -77,5 +119,10 @@ export function useLatexCompiler(latexContent: string, autoCompile: boolean = tr
     handleCompile,
     handleDownloadPDF,
     handleDownloadLatex,
+    answerSheetUrl,
+    answerSheetLoadError,
+    setAnswerSheetLoadError,
+    handleCompileAnswerSheet,
+    handleDownloadAnswerSheet,
   };
 }

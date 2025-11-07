@@ -6,6 +6,7 @@
 import { Eye, ExternalLink } from 'lucide-react';
 import type { PreviewMode } from '../../../types/question';
 import LaTeXCompiler from '../../../services/tex';
+import { AnswerSheetPreview } from './AnswerSheetPreview';
 
 interface PreviewPanelProps {
   previewMode: PreviewMode;
@@ -14,6 +15,9 @@ interface PreviewPanelProps {
   isCompiling: boolean;
   latexContent: string;
   onPdfLoadError: () => void;
+  answerSheetUrl: string | null;
+  answerSheetLoadError: boolean;
+  onAnswerSheetLoadError: () => void;
 }
 
 export function PreviewPanel({
@@ -23,10 +27,25 @@ export function PreviewPanel({
   isCompiling,
   latexContent,
   onPdfLoadError,
+  answerSheetUrl,
+  answerSheetLoadError,
+  onAnswerSheetLoadError,
 }: PreviewPanelProps) {
   const getLatexPreview = () => {
     return LaTeXCompiler.generateAMCDocument(latexContent);
   };
+
+  // Show answer sheet preview
+  if (previewMode === 'answer-sheet') {
+    return (
+      <AnswerSheetPreview
+        answerSheetUrl={answerSheetUrl}
+        pdfLoadError={answerSheetLoadError}
+        isCompiling={isCompiling}
+        onPdfLoadError={onAnswerSheetLoadError}
+      />
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col p-6 pl-0 overflow-hidden">

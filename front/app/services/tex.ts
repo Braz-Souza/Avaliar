@@ -180,7 +180,7 @@ Campo de descrição sobre a prova...
         const processedUrl = getResourceUrl(originalUrl);
         console.log('URL original do backend:', originalUrl);
         console.log('URL processada pelo getResourceUrl:', processedUrl);
-        
+
         return {
           success: true,
           pdfUrl: processedUrl,
@@ -195,6 +195,62 @@ Campo de descrição sobre a prova...
       }
     } catch (error) {
       console.error('Erro durante compilação:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Network or unknown error',
+      };
+    }
+  }
+
+  static async compileAnswerSheet(content: string): Promise<CompilationResult> {
+    try {
+      const latexContent = this.generateAMCDocument(content);
+
+      // Importa configuração da API
+      const { API_CONFIG, getResourceUrl } = await import('../config/api');
+
+      console.log('Enviando requisição de compilação do cartão resposta para:', `${API_CONFIG.baseURL}/latex/compile-answer-sheet`);
+
+      const response = await fetch(`${API_CONFIG.baseURL}/latex/compile-answer-sheet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          latex: latexContent,
+          filename: 'cartao_resposta'
+        }),
+      });
+
+      console.log('Resposta recebida do cartão resposta:', response.status, response.statusText);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Dados da resposta do cartão resposta:', result);
+
+      if (result.success) {
+        const originalUrl = result.pdfUrl;
+        const processedUrl = getResourceUrl(originalUrl);
+        console.log('URL original do cartão resposta:', originalUrl);
+        console.log('URL processada do cartão resposta:', processedUrl);
+
+        return {
+          success: true,
+          pdfUrl: processedUrl,
+          logs: result.logs || [],
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error || 'Answer sheet compilation failed',
+          logs: result.logs || [],
+        };
+      }
+    } catch (error) {
+      console.error('Erro durante compilação do cartão resposta:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network or unknown error',

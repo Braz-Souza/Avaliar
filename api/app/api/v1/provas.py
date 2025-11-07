@@ -20,10 +20,10 @@ router = APIRouter(prefix="/provas", tags=["Provas Management"])
 def get_prova_manager(db: Session = Depends(get_db)) -> ProvaManagerService:
     """
     Dependency para obter instância do serviço de provas com sessão do banco
-    
+
     Args:
         db: Sessão do banco de dados
-        
+
     Returns:
         ProvaManagerService com sessão do banco
     """
@@ -38,12 +38,12 @@ async def save_prova(
 ) -> ProvaRead:
     """
     Salva uma nova prova no servidor - REQUER AUTENTICAÇÃO
-    
+
     Args:
         prova: Dados da prova (nome e conteúdo)
         user_id: ID do usuário autenticado (injetado pelo middleware)
         manager: Serviço de gerenciamento (injetado)
-        
+
     Returns:
         ProvaRead com informações da prova salva
     """
@@ -60,13 +60,13 @@ async def list_provas(
 ) -> List[ProvaRead]:
     """
     Lista provas com paginação - REQUER AUTENTICAÇÃO
-    
+
     Args:
         user_id: ID do usuário autenticado (injetado pelo middleware)
         skip: Número de registros para pular (paginação)
         limit: Número máximo de registros para retornar
         manager: Serviço de gerenciamento (injetado)
-        
+
     Returns:
         Lista de ProvaRead ordenadas por data de modificação
     """
@@ -81,11 +81,11 @@ async def get_prova(
 ) -> ProvaRead:
     """
     Recupera o conteúdo de uma prova salva
-    
+
     Args:
         prova_id: ID da prova
         manager: Serviço de gerenciamento (injetado)
-        
+
     Returns:
         ProvaRead com dados completos
     """
@@ -100,12 +100,12 @@ async def update_prova(
 ) -> ProvaRead:
     """
     Atualiza uma prova existente
-    
+
     Args:
         prova_id: ID da prova
         prova: Novos dados da prova
         manager: Serviço de gerenciamento (injetado)
-        
+
     Returns:
         ProvaRead com informações atualizadas
     """
@@ -119,11 +119,11 @@ async def delete_prova(
 ) -> dict:
     """
     Exclui uma prova salva
-    
+
     Args:
         prova_id: ID da prova
         manager: Serviço de gerenciamento (injetado)
-        
+
     Returns:
         Dicionário com mensagem de sucesso
     """

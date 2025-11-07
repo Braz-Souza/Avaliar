@@ -16,4 +16,4 @@ export interface Question {
 }
 
 export type EditMode = 'visual' | 'code';
-export type PreviewMode = 'pdf' | 'latex';
+export type PreviewMode = 'pdf' | 'latex' | 'answer-sheet';
