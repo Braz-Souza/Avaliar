@@ -68,7 +68,7 @@ export function EditorPanel({
                 onClick={() => onEditModeChange('code')}
               >
                 <Code className="w-4 h-4" />
-                Código
+                Texto
               </button>
             </div>
           </div>

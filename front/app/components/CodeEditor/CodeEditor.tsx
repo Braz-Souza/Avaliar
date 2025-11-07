@@ -1,10 +1,9 @@
 /**
  * CodeEditor Component
- * Syntax-highlighted code editor with overlay technique
+ * Simple code editor for LaTeX content
  */
 
 import { useRef } from 'react';
-import { highlightSyntax } from '../../utils/syntax-highlighter';
 
 interface CodeEditorProps {
   value: string;
@@ -16,13 +15,10 @@ export function CodeEditor({ value, onChange, placeholder }: CodeEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   return (
-    <div className="relative flex-1 overflow-hidden bg-white">
-      <div className="absolute inset-0 p-4 font-mono text-sm overflow-auto pointer-events-none whitespace-pre-wrap leading-6 z-0">
-        <div dangerouslySetInnerHTML={{ __html: highlightSyntax(value) }} />
-      </div>
+    <div className="flex-1 overflow-hidden bg-white">
       <textarea
         ref={textareaRef}
-        className="absolute inset-0 w-full h-full font-mono text-sm resize-none z-10 bg-transparent text-transparent caret-gray-900 border-0 p-4 leading-6 focus:outline-none"
+        className="w-full h-full font-mono text-sm resize-none bg-white text-gray-900 border-0 p-4 leading-6 focus:outline-none"
         placeholder={placeholder || "Digite suas questões aqui..."}
         value={value}
         onChange={(e) => onChange(e.target.value)}
