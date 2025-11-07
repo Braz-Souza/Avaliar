@@ -2,7 +2,15 @@
 
 ## Desenvolvimento Local
 
-Primeiro configurar a database localmente depois rodar a api depois o front. 
+Primeiro configurar a database localmente depois rodar a api depois o front.
+Preciso ter o pdflatex e o auto-multiple-choice no sistema e para isso basta:
+```bash
+sudo apt-get install -y \
+        texlive-latex-base \
+        texlive-fonts-recommended \
+        texlive-fonts-extra \
+        texlive-latex-extra \
+        auto-multiple-choice
 
 API:
 
@@ -13,28 +21,23 @@ export DEBUG=True
 uv run main.py
 ```
 
+Alembic (Migrações do Banco de Dados):
+
+```bash
+cd api
+uv run alembic upgrade head
+```
+
 FRONT:
 
 ```bash
 cd front
 npm i
 npm run build
-cd ..
-uv run main.py
+npm run start
 ```
 
-```bash
-# Desenvolvimento (com reload)
-uv run uvicorn main:app --reload
 
-# Ou usando o script Python
-uv run python main.py
-
-# Produção
-uv run uvicorn main:app --host 0.0.0.0 --port 4200 --workers 4
-```
-
-A aplicação estará disponível em: `http://localhost:4200`
 
 ## Configuração Docker - Atualmente ainda nao configurei o dockerfile perfeitamente
 
