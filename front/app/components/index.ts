@@ -8,3 +8,4 @@ export { SaveDialog } from './SaveDialog/SaveDialog';
 export { EmptyState } from './EmptyState/EmptyState';
 export { AddQuestionButtons } from './AddQuestionButtons/AddQuestionButtons';
 export { default as ProtectedRoute } from './ProtectedRoute/ProtectedRoute';
+export { CorrectExamModal } from './CorrectExamModal/CorrectExamModal';

@@ -3,7 +3,7 @@
  * Navigation and actions sidebar for prova editor
  */
 
-import { ArrowLeft, Download, FileText, Eye, Save, ClipboardList, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Eye, Save, ClipboardList, ClipboardCheck, ScanSearch } from 'lucide-react';
 import { NavLink } from 'react-router';
 import type { PreviewMode } from '../../../types/question';
 
@@ -18,6 +18,7 @@ interface SidebarProps {
   onDownloadLatex: () => void;
   onDownloadAnswerSheet: () => void;
   onDownloadAnswerKey: () => void;
+  onCorrectExam?: () => void;
 }
 
 export function Sidebar({
@@ -31,6 +32,7 @@ export function Sidebar({
   onDownloadLatex,
   onDownloadAnswerSheet,
   onDownloadAnswerKey,
+  onCorrectExam,
 }: SidebarProps) {
   return (
     <aside className="w-72 bg-base-100 shadow-2xl flex flex-col border-r border-base-300">
@@ -77,25 +79,34 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Main Actions */}
+        {/* Main Actions */}
       <div className="flex-1 p-6 space-y-4 overflow-y-auto">
         {/* Save Section */}
         <div>
           <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-3 block">
             Ações Principais
           </label>
-          <button
-            className="btn btn-success w-full gap-2 justify-start"
-            onClick={onSave}
-          >
-            <Save className="w-5 h-5" />
-            <span className="flex-1 text-left">
-              {currentProvaId ? 'Atualizar Prova' : 'Salvar Prova'}
-            </span>
-          </button>
-        </div>
-
-        {/* Preview Mode */}
+          <div className="space-y-2">
+            <button
+              className="btn btn-success w-full gap-2 justify-start"
+              onClick={onSave}
+            >
+              <Save className="w-5 h-5" />
+              <span className="flex-1 text-left">
+                {currentProvaId ? 'Atualizar Prova' : 'Salvar Prova'}
+              </span>
+            </button>
+            {onCorrectExam && (
+              <button
+                className="btn btn-primary w-full gap-2 justify-start"
+                onClick={onCorrectExam}
+              >
+                <ScanSearch className="w-5 h-5" />
+                <span className="flex-1 text-left">Corrigir Prova</span>
+              </button>
+            )}
+          </div>
+        </div>        {/* Preview Mode */}
         <div>
           <label className="text-xs font-semibold text-base-content/60 uppercase tracking-wide mb-3 block">
             Visualização

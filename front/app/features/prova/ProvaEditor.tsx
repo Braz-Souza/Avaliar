@@ -3,7 +3,7 @@
  * Uses clean architecture with separated concerns
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 import type { Route } from '../../prova/+types/prova';
 import type { PreviewMode } from '../../types/question';
@@ -15,6 +15,7 @@ import { Sidebar } from './components/Sidebar';
 import { EditorPanel } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { SaveDialog } from '../../components/SaveDialog/SaveDialog';
+import { CorrectExamModal } from '../../components/CorrectExamModal/CorrectExamModal';
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -27,11 +28,22 @@ export default function ProvaEditor() {
   const [searchParams] = useSearchParams();
   const provaId = searchParams.get('id');
   const [previewMode, setPreviewMode] = useState<PreviewMode>('pdf');
+  const correctExamDialogRef = useRef<HTMLDialogElement>(null);
 
   // Custom hooks for state management
   const editor = useProvaEditor();
   const saver = useProvaSave(provaId);
   const compiler = useLatexCompiler(editor.latexContent, true, saver.provaName);
+
+  // Open correct exam modal
+  const openCorrectExamModal = () => {
+    correctExamDialogRef.current?.showModal();
+  };
+
+  // Close correct exam modal
+  const closeCorrectExamModal = () => {
+    correctExamDialogRef.current?.close();
+  };
 
   // Load prova if ID is provided
   useEffect(() => {
@@ -61,6 +73,7 @@ export default function ProvaEditor() {
         onDownloadLatex={compiler.handleDownloadLatex}
         onDownloadAnswerSheet={compiler.handleDownloadAnswerSheet}
         onDownloadAnswerKey={compiler.handleDownloadAnswerKey}
+        onCorrectExam={openCorrectExamModal}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -105,6 +118,12 @@ export default function ProvaEditor() {
         isSaving={saver.isSaving}
         saveError={saver.saveError}
         isUpdate={!!saver.currentProvaId}
+      />
+
+      <CorrectExamModal
+        dialogRef={correctExamDialogRef}
+        questions={editor.questions}
+        onClose={closeCorrectExamModal}
       />
     </main>
   );

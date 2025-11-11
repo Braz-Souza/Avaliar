@@ -112,10 +112,68 @@ export const authApi = {
     const response = await api.post('/auth/login', { password: pin });
     return response.data;
   },
-  
+
   // Get current user info
   me: async (): Promise<UserInfoResponse> => {
     const response = await api.get('/auth/me');
+    return response.data;
+  },
+};
+
+// Exam Correction API
+export interface QuestionDetail {
+  question: number;
+  detected: string | null;
+  correct_answer: string;
+  status: 'correct' | 'wrong' | 'blank';
+}
+
+export interface ExamCorrectionResult {
+  total: number;
+  correct: number;
+  wrong: number;
+  blank: number;
+  score: number;
+  score_percentage: number;
+  details: QuestionDetail[];
+}
+
+export const examCorrectorApi = {
+  // Correct a single exam from an image
+  correct: async (
+    imageFile: File,
+    answerKey: string[],
+    numQuestions: number,
+    numOptions: number = 5
+  ): Promise<ExamCorrectionResult> => {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    formData.append('answer_key', JSON.stringify(answerKey));
+    formData.append('num_questions', numQuestions.toString());
+    formData.append('num_options', numOptions.toString());
+
+    const response = await api.post('/exam-corrector/correct', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Validate answer key
+  validateAnswerKey: async (
+    answerKey: string[],
+    numOptions: number = 5
+  ): Promise<{ valid: boolean; message: string }> => {
+    const formData = new FormData();
+    formData.append('answer_key', JSON.stringify(answerKey));
+    formData.append('num_options', numOptions.toString());
+
+    const response = await api.post('/exam-corrector/validate-answer-key', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
 };
