@@ -8,7 +8,7 @@ import logoLight from "./assets/logo-light.svg";
 import { Link } from "react-router";
 import { useState, useEffect } from "react";
 import { provasApi, type ProvaInfo } from "../../services/api";
-import { FileText, Trash2, Edit, PlusCircle, LogOut, User } from "lucide-react";
+import { FileText, Trash2, Edit, PlusCircle, LogOut, User, GraduationCap, Users } from "lucide-react";
 import { formatDate } from "../../utils/date-formatter";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -101,10 +101,20 @@ export function HomePage() {
         <div className="card bg-base-100 shadow-xl p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">Minhas Provas</h2>
-            <Link className="btn btn-primary gap-2" to="/prova">
-              <PlusCircle className="w-5 h-5" />
-              Nova Prova
-            </Link>
+            <div className="flex gap-2">
+              <Link className="btn btn-primary gap-2" to="/prova">
+                <PlusCircle className="w-5 h-5" />
+                Nova Prova
+              </Link>
+              <Link className="btn btn-secondary gap-2" to="/turmas">
+                <GraduationCap className="w-5 h-5" />
+                Gerenciar Turmas
+              </Link>
+              <Link className="btn btn-accent gap-2" to="/alunos">
+                <Users className="w-5 h-5" />
+                Gerenciar Alunos
+              </Link>
+            </div>
           </div>
 
           {error && (

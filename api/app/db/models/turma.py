@@ -2,12 +2,15 @@
 SQLModel for Turma (class) management
 """
 
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, String, Integer, Table, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+if TYPE_CHECKING:
+    from .aluno import Aluno
 
 
 # Association table for many-to-many relationship between Turma and Aluno

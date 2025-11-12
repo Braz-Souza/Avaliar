@@ -59,6 +59,38 @@ export interface ProvaInfo {
   modified_at: string;
 }
 
+// Turma Types
+export interface TurmaData {
+  ano: number;
+  materia: string;
+  curso: string;
+  periodo: number;
+}
+
+export interface TurmaInfo {
+  id: string;
+  ano: number;
+  materia: string;
+  curso: string;
+  periodo: number;
+}
+
+// Aluno Types
+export interface AlunoData {
+  nome: string;
+  email: string;
+  matricula: string;
+  turma_ids: string[];
+}
+
+export interface AlunoInfo {
+  id: string;
+  nome: string;
+  email: string;
+  matricula: string;
+  turmas: TurmaInfo[];
+}
+
 // Provas API
 export const provasApi = {
   // List all saved provas
@@ -88,6 +120,116 @@ export const provasApi = {
   // Delete a prova
   delete: async (provaId: string): Promise<void> => {
     await api.delete(`/provas/${provaId}`);
+  },
+};
+
+// Turmas API
+export const turmasApi = {
+  // List all turmas
+  list: async (params?: {
+    skip?: number;
+    limit?: number;
+    ano?: number;
+    materia?: string;
+    curso?: string;
+  }): Promise<TurmaInfo[]> => {
+    const response = await api.get('/turmas', { params });
+    return response.data;
+  },
+
+  // Get a specific turma by ID
+  get: async (turmaId: string): Promise<TurmaInfo> => {
+    const response = await api.get(`/turmas/${turmaId}`);
+    return response.data;
+  },
+
+  // Create a new turma
+  create: async (turma: TurmaData): Promise<TurmaInfo> => {
+    const response = await api.post('/turmas', turma);
+    return response.data;
+  },
+
+  // Update an existing turma
+  update: async (turmaId: string, turma: Partial<TurmaData>): Promise<TurmaInfo> => {
+    const response = await api.put(`/turmas/${turmaId}`, turma);
+    return response.data;
+  },
+
+  // Delete a turma
+  delete: async (turmaId: string): Promise<void> => {
+    await api.delete(`/turmas/${turmaId}`);
+  },
+
+  // Count turmas
+  count: async (params?: {
+    ano?: number;
+    materia?: string;
+    curso?: string;
+  }): Promise<{ total: number }> => {
+    const response = await api.get('/turmas/count/total', { params });
+    return response.data;
+  },
+};
+
+// Alunos API
+export const alunosApi = {
+  // List all alunos
+  list: async (params?: {
+    skip?: number;
+    limit?: number;
+    nome?: string;
+    email?: string;
+    matricula?: string;
+    turma_id?: string;
+  }): Promise<AlunoInfo[]> => {
+    const response = await api.get('/alunos', { params });
+    return response.data;
+  },
+
+  // Get a specific aluno by ID
+  get: async (alunoId: string): Promise<AlunoInfo> => {
+    const response = await api.get(`/alunos/${alunoId}`);
+    return response.data;
+  },
+
+  // Create a new aluno
+  create: async (aluno: AlunoData): Promise<AlunoInfo> => {
+    const response = await api.post('/alunos', aluno);
+    return response.data;
+  },
+
+  // Update an existing aluno
+  update: async (alunoId: string, aluno: Partial<AlunoData>): Promise<AlunoInfo> => {
+    const response = await api.put(`/alunos/${alunoId}`, aluno);
+    return response.data;
+  },
+
+  // Delete an aluno
+  delete: async (alunoId: string): Promise<void> => {
+    await api.delete(`/alunos/${alunoId}`);
+  },
+
+  // Add aluno to turma
+  addToTurma: async (alunoId: string, turmaId: string): Promise<AlunoInfo> => {
+    const response = await api.post(`/alunos/${alunoId}/turmas/${turmaId}`);
+    return response.data;
+  },
+
+  // Remove aluno from turma
+  removeFromTurma: async (alunoId: string, turmaId: string): Promise<AlunoInfo> => {
+    const response = await api.delete(`/alunos/${alunoId}/turmas/${turmaId}`);
+    return response.data;
+  },
+
+  // Count alunos
+  count: async (params?: {
+    nome?: string;
+    email?: string;
+    matricula?: string;
+    turma_id?: string;
+  }): Promise<{ total: number }> => {
+    const response = await api.get('/alunos/count/total', { params });
+    return response.data;
   },
 };
 

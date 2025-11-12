@@ -2,12 +2,15 @@
 SQLModel for Aluno (student) management
 """
 
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+if TYPE_CHECKING:
+    from .turma import TurmaRead
 
 
 class AlunoBase(SQLModel):

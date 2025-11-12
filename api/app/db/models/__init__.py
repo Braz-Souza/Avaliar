@@ -24,3 +24,6 @@ __all__ = [
     "AlunoUpdate",
     "AlunoRead"
 ]
+
+# Rebuild models to resolve forward references
+AlunoRead.model_rebuild()
