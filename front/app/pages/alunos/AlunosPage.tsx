@@ -105,7 +105,7 @@ export function AlunosPage() {
 
   const filteredAlunos = alunos.filter(aluno => {
     const matchesSearch = aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         aluno.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (aluno.email && aluno.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
                          aluno.matricula.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTurma = !filterTurma || aluno.turmas.some(t => t.id === filterTurma);
     return matchesSearch && matchesTurma;
@@ -219,7 +219,7 @@ export function AlunosPage() {
                     {filteredAlunos.map((aluno) => (
                       <tr key={aluno.id}>
                         <td className="font-medium">{aluno.nome}</td>
-                        <td>{aluno.email}</td>
+                        <td>{aluno.email || '-'}</td>
                         <td>{aluno.matricula}</td>
                         <td>
                           <div className="flex flex-wrap gap-1">
@@ -370,7 +370,7 @@ function AlunoForm({ initialData, turmas, onSubmit, onCancel }: AlunoFormProps) 
 
       <div className="form-control">
         <label className="label">
-          <span className="label-text">Email</span>
+          <span className="label-text">Email (opcional)</span>
         </label>
         <input
           type="email"
@@ -378,7 +378,6 @@ function AlunoForm({ initialData, turmas, onSubmit, onCancel }: AlunoFormProps) 
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder="email@exemplo.com"
-          required
         />
       </div>
 

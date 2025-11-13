@@ -16,10 +16,10 @@ if TYPE_CHECKING:
 class AlunoBase(SQLModel):
     """Base model for Aluno with common fields"""
     nome: str = Field(description="Name of the student")
-    email: str = Field(
-        unique=True,
+    email: Optional[str] = Field(
+        default=None,
         index=True,
-        description="Unique email of the student"
+        description="Unique email of the student (optional)"
     )
     matricula: str = Field(
         unique=True,

@@ -78,7 +78,7 @@ export interface TurmaInfo {
 // Aluno Types
 export interface AlunoData {
   nome: string;
-  email: string;
+  email?: string;
   matricula: string;
   turma_ids: string[];
 }
@@ -86,7 +86,7 @@ export interface AlunoData {
 export interface AlunoInfo {
   id: string;
   nome: string;
-  email: string;
+  email?: string;
   matricula: string;
   turmas: TurmaInfo[];
 }

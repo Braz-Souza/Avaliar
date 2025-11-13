@@ -44,7 +44,7 @@ class AlunoManagerService:
 
         aluno = Aluno(
             nome=aluno_data.nome,
-            email=aluno_data.email,
+            email=aluno_data.email if aluno_data.email else None,
             matricula=aluno_data.matricula
         )
 
