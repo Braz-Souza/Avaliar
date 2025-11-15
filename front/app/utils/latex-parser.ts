@@ -15,21 +15,20 @@ export function parseLatexToQuestions(latex: string): Question[] {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    
+
     if (trimmed.startsWith('Q:')) {
       if (currentQuestion) questions.push(currentQuestion);
       currentQuestion = {
         id: Date.now().toString() + Math.random(),
-        type: 'simple',
         text: trimmed.substring(2).trim(),
         options: [],
       };
       optionIndex = 0;
     } else if (trimmed.startsWith('QM:')) {
+      // Convert QM: to Q: for backward compatibility
       if (currentQuestion) questions.push(currentQuestion);
       currentQuestion = {
         id: Date.now().toString() + Math.random(),
-        type: 'multiple',
         text: trimmed.substring(3).trim(),
         options: [],
       };
@@ -56,8 +55,7 @@ export function parseLatexToQuestions(latex: string): Question[] {
  */
 export function questionsToLatex(questions: Question[]): string {
   return questions.map(q => {
-    const prefix = q.type === 'simple' ? 'Q:' : 'QM:';
-    const questionLine = `${prefix} ${q.text}`;
+    const questionLine = `Q: ${q.text}`;
     const optionLines = q.options.map((opt, idx) => {
       const letter = String.fromCharCode(97 + idx);
       const asterisk = opt.isCorrect ? ' *' : '';

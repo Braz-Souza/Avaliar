@@ -10,7 +10,6 @@ export interface QuestionOption {
 
 export interface Question {
   id: string;
-  type: 'simple' | 'multiple';
   text: string;
   options: QuestionOption[];
 }

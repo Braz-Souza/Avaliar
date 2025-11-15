@@ -128,3 +128,42 @@ async def delete_prova(
         Dicionário com mensagem de sucesso
     """
     return await manager.delete_prova(prova_id)
+
+
+@router.get("/{prova_id}/questoes")
+async def get_prova_with_questoes(
+    prova_id: UUID,
+    manager: ProvaManagerService = Depends(get_prova_manager)
+) -> dict:
+    """
+    Recupera uma prova com suas questões estruturadas
+
+    Args:
+        prova_id: ID da prova
+        manager: Serviço de gerenciamento (injetado)
+
+    Returns:
+        Dicionário com dados da prova e questões estruturadas
+    """
+    return await manager.get_prova_with_questoes(prova_id)
+
+
+@router.post("/com-questoes", response_model=dict)
+async def save_prova_with_questoes(
+    prova_data: dict,
+    user_id: CurrentUser,
+    manager: ProvaManagerService = Depends(get_prova_manager)
+) -> dict:
+    """
+    Salva uma nova prova com questões estruturadas
+
+    Args:
+        prova_data: Dados da prova incluindo questões estruturadas
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de gerenciamento (injetado)
+
+    Returns:
+        Dicionário com informações da prova salva com questões
+    """
+    # Don't pass created_by since current auth uses username strings, not UUIDs
+    return await manager.save_prova_with_questoes(prova_data, created_by=None)

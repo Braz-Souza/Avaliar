@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
-import type { Route } from '../../prova/+types/prova';
+import type { Route } from '../../routes/+types/prova';
 import type { PreviewMode } from '../../types/question';
 import { useProvaEditor } from '../../hooks/useProvaEditor';
 import { useLatexCompiler } from '../../hooks/useLatexCompiler';

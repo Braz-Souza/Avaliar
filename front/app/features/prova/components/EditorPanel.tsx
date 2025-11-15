@@ -16,7 +16,7 @@ interface EditorPanelProps {
   questions: Question[];
   latexContent: string;
   onLatexChange: (content: string) => void;
-  onAddQuestion: (type: 'simple' | 'multiple') => void;
+  onAddQuestion: () => void;
   onUpdateQuestion: (id: string, text: string) => void;
   onRemoveQuestion: (id: string) => void;
   onAddOption: (questionId: string) => void;
@@ -95,8 +95,7 @@ export function EditorPanel({
 
               {/* Add Question Buttons */}
               <AddQuestionButtons
-                onAddSimple={() => onAddQuestion('simple')}
-                onAddMultiple={() => onAddQuestion('multiple')}
+                onAddQuestion={onAddQuestion}
               />
             </div>
           ) : (

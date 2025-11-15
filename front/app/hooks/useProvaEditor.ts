@@ -20,7 +20,7 @@ d) CSS`;
 
 export function useProvaEditor(initialContent?: string) {
   const [latexContent, setLatexContent] = useState(initialContent || INITIAL_LATEX);
-  const [questions, setQuestions] = useState<Question[]>(() => 
+  const [questions, setQuestions] = useState<Question[]>(() =>
     parseLatexToQuestions(initialContent || INITIAL_LATEX)
   );
   const [editMode, setEditMode] = useState<EditMode>('visual');
@@ -43,10 +43,9 @@ export function useProvaEditor(initialContent?: string) {
     }
   }, [editMode]);
 
-  const addQuestion = (type: 'simple' | 'multiple') => {
+  const addQuestion = () => {
     const newQuestion: Question = {
       id: Date.now().toString() + Math.random(),
-      type,
       text: '',
       options: [
         { id: Date.now().toString() + '0', text: '', isCorrect: false },
@@ -97,7 +96,7 @@ export function useProvaEditor(initialContent?: string) {
       if (q.id === questionId) {
         return {
           ...q,
-          options: q.options.map(opt => 
+          options: q.options.map(opt =>
             opt.id === optionId ? { ...opt, text } : opt
           ),
         };
@@ -109,24 +108,14 @@ export function useProvaEditor(initialContent?: string) {
   const toggleOptionCorrect = (questionId: string, optionId: string) => {
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
-        if (q.type === 'simple') {
-          // For simple questions, only one option can be correct
-          return {
-            ...q,
-            options: q.options.map(opt => ({
-              ...opt,
-              isCorrect: opt.id === optionId,
-            })),
-          };
-        } else {
-          // For multiple choice, toggle the option
-          return {
-            ...q,
-            options: q.options.map(opt => 
-              opt.id === optionId ? { ...opt, isCorrect: !opt.isCorrect } : opt
-            ),
-          };
-        }
+        // For simple questions, only one option can be correct
+        return {
+          ...q,
+          options: q.options.map(opt => ({
+            ...opt,
+            isCorrect: opt.id === optionId,
+          })),
+        };
       }
       return q;
     }));

@@ -3,7 +3,7 @@ SQLModel for Prova (exam/test) management
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field, Relationship
@@ -15,7 +15,7 @@ class ProvaBase(SQLModel):
     """Base model for Prova with common fields"""
     name: str = Field(index=True, description="Name of prova")
     content: str = Field(
-        sa_column=Column(Text), 
+        sa_column=Column(Text),
         description="LaTeX content of prova"
     )
     created_at: Optional[datetime] = Field(
@@ -26,8 +26,8 @@ class ProvaBase(SQLModel):
     modified_at: Optional[datetime] = Field(
         default_factory=datetime.utcnow,
         sa_column=Column(
-            DateTime(timezone=True), 
-            server_default=func.now(), 
+            DateTime(timezone=True),
+            server_default=func.now(),
             onupdate=func.now()
         ),
         description="Timestamp when prova was last modified"
@@ -42,17 +42,24 @@ class ProvaBase(SQLModel):
 class Prova(ProvaBase, table=True):
     """Prova table model"""
     __tablename__ = "provas"
-    
+
     id: Optional[UUID] = Field(
         default_factory=uuid4,
         sa_column=Column(PG_UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()),
         description="Unique identifier for prova"
     )
-    
+
     # Relationships
     creator: Optional["User"] = Relationship(
         back_populates="provas",
         sa_relationship_kwargs={"lazy": "select"}
+    )
+    questoes: List["Questao"] = Relationship(
+        back_populates="prova",
+        sa_relationship_kwargs={
+            "lazy": "selectin",
+            "cascade": "all, delete-orphan"
+        }
     )
 
 
