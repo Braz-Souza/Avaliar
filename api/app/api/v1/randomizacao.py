@@ -346,3 +346,48 @@ async def get_provas_disponiveis_para_turma(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao listar provas disponíveis: {str(e)}")
+
+
+@router.get("/download-zip/{turma_prova_id}")
+async def download_all_provas_zip(
+    turma_prova_id: UUID,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager),
+    latex_compiler: LaTeXCompilerService = Depends(get_latex_compiler)
+):
+    """
+    Baixa arquivo ZIP contendo todas as provas personalizadas dos alunos - REQUER AUTENTICAÇÃO
+
+    Args:
+        turma_prova_id: ID da ligação turma-prova
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+        latex_compiler: Serviço de compilação LaTeX (injetado)
+
+    Returns:
+        Response com arquivo ZIP contendo todos os PDFs das provas
+
+    Raises:
+        HTTPException: Se turma_prova_id não existir ou erro na geração dos PDFs
+    """
+    try:
+        # Criar ZIP com todos os PDFs
+        zip_bytes, zip_filename = await manager.create_zip_with_all_pdfs(
+            turma_prova_id=turma_prova_id,
+            latex_compiler=latex_compiler
+        )
+
+        # Retornar ZIP
+        return Response(
+            content=zip_bytes,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename={zip_filename}"
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar ZIP das provas: {str(e)}")

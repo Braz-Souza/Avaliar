@@ -209,6 +209,14 @@ export const randomizacaoApi = {
     });
     return response.data;
   },
+
+  // Download ZIP with all PDFs for a turma-prova
+  downloadAllProvasZip: async (turmaProvaId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/download-zip/${turmaProvaId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
 };
 
 // Turmas API

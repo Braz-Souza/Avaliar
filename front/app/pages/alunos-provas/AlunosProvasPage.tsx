@@ -6,7 +6,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import { randomizacaoApi, alunosApi, provasApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData } from "../../services/api";
-import { ArrowLeft, Download, Eye, Shuffle } from "lucide-react";
+import { ArrowLeft, Download, Eye, Shuffle, PackageOpen } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 export function AlunosProvasPage() {
@@ -15,8 +15,10 @@ export function AlunosProvasPage() {
   const [alunos, setAlunos] = useState<AlunoRandomizacaoInfo[]>([]);
   const [alunosDetails, setAlunosDetails] = useState<{ [key: string]: AlunoInfo }>({});
   const [prova, setProva] = useState<ProvaInfo | null>(null);
+  const [turmaProvaId, setTurmaProvaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<{ [key: string]: boolean }>({});
+  const [downloadingZip, setDownloadingZip] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -55,6 +57,7 @@ export function AlunosProvasPage() {
       }
 
       const turmaProvaId = turmaProvas[0].id;
+      setTurmaProvaId(turmaProvaId);
 
       // Load alunos randomizacoes
       const randomizacoes = await randomizacaoApi.getAlunosRandomizacoes(turmaProvaId);
@@ -106,6 +109,32 @@ export function AlunosProvasPage() {
       alert('Erro ao gerar PDF da prova');
     } finally {
       setGeneratingPdf(prev => ({ ...prev, [alunoId]: false }));
+    }
+  };
+
+  const handleDownloadAllZip = async () => {
+    if (!turmaProvaId) return;
+
+    try {
+      setDownloadingZip(true);
+
+      const zipBlob = await randomizacaoApi.downloadAllProvasZip(turmaProvaId);
+
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `provas_${prova?.name?.replace(/\s+/g, '_')}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error('Erro ao baixar ZIP:', err);
+      alert('Erro ao baixar arquivo ZIP com todas as provas');
+    } finally {
+      setDownloadingZip(false);
     }
   };
 
@@ -168,10 +197,30 @@ export function AlunosProvasPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2 text-gray-700">
-              <span className="text-sm font-medium">
-                {user?.name || 'Usuário'}
-              </span>
+            <div className="flex items-center space-x-4">
+              <button
+                className={`btn btn-primary gap-2 ${downloadingZip ? 'loading' : ''}`}
+                onClick={handleDownloadAllZip}
+                disabled={downloadingZip || alunos.length === 0}
+                title="Baixar todas as provas em um arquivo ZIP"
+              >
+                {downloadingZip ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Gerando ZIP...
+                  </>
+                ) : (
+                  <>
+                    <PackageOpen className="w-4 h-4" />
+                    Baixar Todas (ZIP)
+                  </>
+                )}
+              </button>
+              <div className="text-gray-700">
+                <span className="text-sm font-medium">
+                  {user?.name || 'Usuário'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
