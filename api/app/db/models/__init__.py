@@ -10,6 +10,10 @@ from .questao import (
     Questao, QuestaoCreate, QuestaoUpdate, QuestaoRead,
     QuestaoOpcao, QuestaoOpcaoCreate, QuestaoOpcaoUpdate, QuestaoOpcaoRead
 )
+from .randomizacao import (
+    TurmaProva, TurmaProvaCreate, TurmaProvaRead,
+    AlunoRandomizacao, AlunoRandomizacaoCreate, AlunoRandomizacaoRead
+)
 
 __all__ = [
     "Prova",
@@ -34,7 +38,13 @@ __all__ = [
     "QuestaoOpcao",
     "QuestaoOpcaoCreate",
     "QuestaoOpcaoUpdate",
-    "QuestaoOpcaoRead"
+    "QuestaoOpcaoRead",
+    "TurmaProva",
+    "TurmaProvaCreate",
+    "TurmaProvaRead",
+    "AlunoRandomizacao",
+    "AlunoRandomizacaoCreate",
+    "AlunoRandomizacaoRead"
 ]
 
 # Rebuild models to resolve forward references
@@ -42,3 +52,5 @@ AlunoRead.model_rebuild()
 ProvaRead.model_rebuild()
 QuestaoRead.model_rebuild()
 QuestaoOpcaoRead.model_rebuild()
+TurmaProvaRead.model_rebuild()
+AlunoRandomizacaoRead.model_rebuild()

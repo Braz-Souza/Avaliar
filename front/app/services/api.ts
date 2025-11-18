@@ -59,6 +59,23 @@ export interface ProvaInfo {
   modified_at: string;
 }
 
+// Randomization Types
+export interface TurmaProvaInfo {
+  id: string;
+  turma_id: string;
+  prova_id: string;
+  created_at: string;
+}
+
+export interface AlunoRandomizacaoInfo {
+  id: string;
+  turma_prova_id: string;
+  aluno_id: string;
+  questoes_order: number[];
+  alternativas_order: { [key: string]: number[] };
+  created_at: string;
+}
+
 // Turma Types
 export interface TurmaData {
   ano: number;
@@ -120,6 +137,77 @@ export const provasApi = {
   // Delete a prova
   delete: async (provaId: string): Promise<void> => {
     await api.delete(`/provas/${provaId}`);
+  },
+};
+
+// Randomization API
+export const randomizacaoApi = {
+  // Link prova to turma
+  linkProvaToTurma: async (turmaId: string, provaId: string): Promise<TurmaProvaInfo> => {
+    const response = await api.post(`/randomizacao/link/${turmaId}/${provaId}`);
+    return response.data;
+  },
+
+  // List turma-prova links
+  listTurmasProvas: async (params?: {
+    turma_id?: string;
+    prova_id?: string;
+  }): Promise<TurmaProvaInfo[]> => {
+    const response = await api.get('/randomizacao/turmas-provas', { params });
+    return response.data;
+  },
+
+  // Get aluno randomizacoes for turma-prova
+  getAlunosRandomizacoes: async (turmaProvaId: string): Promise<AlunoRandomizacaoInfo[]> => {
+    const response = await api.get(`/randomizacao/alunos/${turmaProvaId}`);
+    return response.data;
+  },
+
+  // Get specific aluno randomizacao
+  getAlunoRandomizacao: async (alunoId: string, provaId: string): Promise<AlunoRandomizacaoInfo> => {
+    const response = await api.get(`/randomizacao/aluno/${alunoId}/prova/${provaId}`);
+    return response.data;
+  },
+
+  // Unlink prova from turma
+  unlinkProvaFromTurma: async (turmaId: string, provaId: string): Promise<{ message: string }> => {
+    const response = await api.delete(`/randomizacao/unlink/${turmaId}/${provaId}`);
+    return response.data;
+  },
+
+  // Get turmas disponiveis para prova
+  getTurmasDisponiveisParaProva: async (provaId: string): Promise<{
+    disponiveis: TurmaInfo[];
+    vinculadas: TurmaInfo[];
+  }> => {
+    const response = await api.get(`/randomizacao/turmas/disponiveis/${provaId}`);
+    return response.data;
+  },
+
+  // Get provas disponiveis para turma
+  getProvasDisponiveisParaTurma: async (turmaId: string): Promise<{
+    disponiveis: ProvaInfo[];
+    vinculadas: ProvaInfo[];
+  }> => {
+    const response = await api.get(`/randomizacao/provas/disponiveis/${turmaId}`);
+    return response.data;
+  },
+
+  // Generate PDF for aluno
+  generateAlunoProvaPdf: async (alunoId: string, provaId: string): Promise<{
+    pdfUrl: string;
+    message: string;
+  }> => {
+    const response = await api.get(`/randomizacao/pdf/${alunoId}/${provaId}`);
+    return response.data;
+  },
+
+  // Download personalized PDF for aluno (returns blob)
+  downloadAlunoProvaPdf: async (alunoId: string, provaId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/aluno/${alunoId}/prova/${provaId}/content`, {
+      responseType: 'blob'
+    });
+    return response.data;
   },
 };
 
@@ -204,7 +292,7 @@ export const alunosApi = {
     return response.data;
   },
 
-  // Delete an aluno
+  // Delete a aluno
   delete: async (alunoId: string): Promise<void> => {
     await api.delete(`/alunos/${alunoId}`);
   },

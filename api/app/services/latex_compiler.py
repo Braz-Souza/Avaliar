@@ -578,3 +578,56 @@ class LaTeXCompilerService:
         """
         answer_key_latex = self.generate_answer_sheet_latex(latex_content, is_answer_key=True)
         return await self.compile(answer_key_latex, filename)
+
+    async def compile_to_bytes(
+        self,
+        latex_content: str,
+        filename: str = "document"
+    ) -> tuple[bool, bytes | None, str | None]:
+        """
+        Compila código LaTeX para PDF e retorna como bytes (sem salvar arquivo)
+
+        Args:
+            latex_content: Código LaTeX a ser compilado
+            filename: Nome base do arquivo (sem extensão)
+
+        Returns:
+            Tupla (sucesso: bool, pdf_bytes: bytes | None, erro: str | None)
+            - sucesso: True se compilou com sucesso
+            - pdf_bytes: Bytes do PDF gerado ou None se falhou
+            - erro: Mensagem de erro ou None se sucesso
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            tex_file = temp_path / f"{filename}.tex"
+
+            try:
+                tex_file.write_text(latex_content, encoding='utf-8')
+                logger.debug(f"LaTeX file written to: {tex_file}")
+            except Exception as e:
+                logger.error(f"Failed to write LaTeX file: {e}")
+                return False, None, f"Failed to write LaTeX file: {str(e)}"
+
+            try:
+                result = await self._run_pdflatex(tex_file, temp_path)
+                pdf_file = temp_path / f"{filename}.pdf"
+
+                if pdf_file.exists():
+                    # Ler o PDF como bytes
+                    pdf_bytes = pdf_file.read_bytes()
+                    logger.info(f"LaTeX compiled successfully to bytes: {filename} ({len(pdf_bytes)} bytes)")
+                    return True, pdf_bytes, None
+                else:
+                    error_msg = f"PDF compilation failed. Exit code: {result.returncode}"
+                    logger.warning(f"LaTeX compilation failed for {filename}")
+                    return False, None, error_msg
+
+            except subprocess.TimeoutExpired:
+                logger.warning(f"LaTeX compilation timeout for {filename}")
+                return False, None, f"Compilation timeout ({settings.LATEX_TIMEOUT_SECONDS}s exceeded)"
+            except FileNotFoundError:
+                logger.error("pdflatex not found in system")
+                return False, None, "pdflatex not found. Please install LaTeX distribution"
+            except Exception as e:
+                logger.error(f"Compilation error: {str(e)}")
+                return False, None, f"Compilation error: {str(e)}"

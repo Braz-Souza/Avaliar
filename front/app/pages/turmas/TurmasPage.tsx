@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { turmasApi, type TurmaInfo, type TurmaData } from "../../services/api";
-import { GraduationCap, PlusCircle, Edit, Trash2, Search, Users } from "lucide-react";
+import { turmasApi, randomizacaoApi, type TurmaInfo, type TurmaData } from "../../services/api";
+import { GraduationCap, PlusCircle, Edit, Trash2, Search, Users, Link2, Eye } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 export function TurmasPage() {
@@ -21,6 +21,10 @@ export function TurmasPage() {
   const [filterCurso, setFilterCurso] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTurma, setEditingTurma] = useState<TurmaInfo | null>(null);
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showProvasModal, setShowProvasModal] = useState(false);
+  const [selectedTurma, setSelectedTurma] = useState<TurmaInfo | null>(null);
+  const [linking, setLinking] = useState(false);
 
   useEffect(() => {
     loadTurmas();
@@ -82,6 +86,16 @@ export function TurmasPage() {
       console.error('Erro ao atualizar turma:', err);
       alert('Erro ao atualizar a turma');
     }
+  };
+
+  const handleLinkProva = (turma: TurmaInfo) => {
+    setSelectedTurma(turma);
+    setShowLinkModal(true);
+  };
+
+  const handleViewProvas = (turma: TurmaInfo) => {
+    setSelectedTurma(turma);
+    setShowProvasModal(true);
   };
 
   const filteredTurmas = turmas.filter(turma => {
@@ -221,13 +235,27 @@ export function TurmasPage() {
                         <td>{turma.curso}</td>
                         <td>{turma.periodo}º</td>
                         <td>
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-2 justify-end flex-wrap">
                             <button
                               onClick={() => setEditingTurma(turma)}
                               className="btn btn-sm btn-primary btn-outline gap-2"
                             >
                               <Edit className="w-4 h-4" />
                               Editar
+                            </button>
+                            <button
+                              className={`btn btn-sm btn-info btn-outline gap-2`}
+                              onClick={() => handleLinkProva(turma)}
+                            >
+                              <Link2 className="w-4 h-4" />
+                              Vincular Prova
+                            </button>
+                            <button
+                              className={`btn btn-sm btn-success btn-outline gap-2`}
+                              onClick={() => handleViewProvas(turma)}
+                            >
+                              <Eye className="w-4 h-4" />
+                              Ver Provas
                             </button>
                             <button
                               className={`btn btn-sm btn-error btn-outline gap-2 ${
@@ -278,6 +306,26 @@ export function TurmasPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Link Prova Modal */}
+      {showLinkModal && selectedTurma && (
+        <LinkProvaModal
+          turma={selectedTurma}
+          onLink={() => {
+            setShowLinkModal(false);
+            loadTurmas(); // Reload to show updated links
+          }}
+          onCancel={() => setShowLinkModal(false)}
+        />
+      )}
+
+      {/* View Provas Modal */}
+      {showProvasModal && selectedTurma && (
+        <ViewProvasModal
+          turma={selectedTurma}
+          onClose={() => setShowProvasModal(false)}
+        />
       )}
     </main>
   );
@@ -374,5 +422,204 @@ function TurmaForm({ initialData, onSubmit, onCancel }: TurmaFormProps) {
         </button>
       </div>
     </form>
+  );
+}
+
+// Link Prova Modal Component
+interface LinkProvaModalProps {
+  turma: TurmaInfo;
+  onLink: () => void;
+  onCancel: () => void;
+}
+
+function LinkProvaModal({ turma, onLink, onCancel }: LinkProvaModalProps) {
+  const [provas, setProvas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProva, setSelectedProva] = useState<string>("");
+  const [linking, setLinking] = useState(false);
+
+  useEffect(() => {
+    loadProvas();
+  }, []);
+
+  const loadProvas = async () => {
+    try {
+      setLoading(true);
+      const response = await randomizacaoApi.getProvasDisponiveisParaTurma(turma.id);
+      setProvas(response.disponiveis);
+    } catch (err) {
+      console.error('Erro ao carregar provas:', err);
+      alert('Erro ao carregar provas disponíveis');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLink = async () => {
+    if (!selectedProva) {
+      alert('Selecione uma prova para vincular');
+      return;
+    }
+
+    try {
+      setLinking(true);
+      await randomizacaoApi.linkProvaToTurma(turma.id, selectedProva);
+      onLink();
+    } catch (err: any) {
+      console.error('Erro ao vincular prova:', err);
+      const errorMessage = err?.response?.data?.detail || 'Erro ao vincular prova à turma';
+      alert(errorMessage);
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  return (
+    <div className="modal modal-open">
+      <div className="modal-box max-w-2xl">
+        <h3 className="font-bold text-lg mb-4">
+          Vincular Prova à Turma: {turma.materia} - {turma.curso}
+        </h3>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <span className="loading loading-spinner loading-lg"></span>
+          </div>
+        ) : provas.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Nenhuma prova disponível para vincular</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Selecione uma Prova</span>
+              </label>
+              <select
+                className="select select-bordered"
+                value={selectedProva}
+                onChange={(e) => setSelectedProva(e.target.value)}
+              >
+                <option value="">Escolha uma prova...</option>
+                {provas.map((prova) => (
+                  <option key={prova.id} value={prova.id}>
+                    {prova.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        <div className="modal-action">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onCancel}
+            disabled={linking}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={handleLink}
+            disabled={linking || !selectedProva}
+          >
+            {linking && <span className="loading loading-spinner loading-sm"></span>}
+            Vincular Prova
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// View Provas Modal Component
+interface ViewProvasModalProps {
+  turma: TurmaInfo;
+  onClose: () => void;
+}
+
+function ViewProvasModal({ turma, onClose }: ViewProvasModalProps) {
+  const [provas, setProvas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadProvas();
+  }, []);
+
+  const loadProvas = async () => {
+    try {
+      setLoading(true);
+      const response = await randomizacaoApi.getProvasDisponiveisParaTurma(turma.id);
+      setProvas(response.vinculadas);
+    } catch (err) {
+      console.error('Erro ao carregar provas vinculadas:', err);
+      alert('Erro ao carregar provas vinculadas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal modal-open">
+      <div className="modal-box max-w-4xl">
+        <h3 className="font-bold text-lg mb-4">
+          Provas Vinculadas: {turma.materia} - {turma.curso}
+        </h3>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <span className="loading loading-spinner loading-lg"></span>
+          </div>
+        ) : provas.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Nenhuma prova vinculada a esta turma</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="table table-zebra">
+              <thead>
+                <tr>
+                  <th>Nome da Prova</th>
+                  <th>Data de Vinculação</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {provas.map((prova) => (
+                  <tr key={prova.id}>
+                    <td>{prova.name}</td>
+                    <td>{new Date(prova.created_at).toLocaleDateString('pt-BR')}</td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-primary btn-outline gap-2"
+                        onClick={() => {
+                          window.location.href = `/alunos-provas/${turma.id}/${prova.id}`;
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver Alunos
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className="modal-action">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onClose}
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

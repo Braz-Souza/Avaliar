@@ -5,5 +5,6 @@ export default [
   route("login", "routes/login.tsx"),
   route("prova", "routes/prova.tsx"),
   route("turmas", "routes/turmas.tsx"),
-  route("alunos", "routes/alunos.tsx")
+  route("alunos", "routes/alunos.tsx"),
+  route("alunos-provas/:turmaId/:provaId", "routes/alunos-provas.tsx")
 ] satisfies RouteConfig;
