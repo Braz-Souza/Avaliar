@@ -9,6 +9,7 @@ from sqlmodel import Session, select, func
 
 from app.db.models.prova import Prova, ProvaCreate, ProvaUpdate, ProvaRead
 from app.db.models.questao import Questao, QuestaoOpcao
+from app.services.latex_parser import LaTeXParserService
 from app.utils.logger import logger
 
 
@@ -23,7 +24,7 @@ class ProvaManagerService:
 
     async def save_prova(self, prova_data: ProvaCreate, created_by: Optional[UUID] = None) -> ProvaRead:
         """
-        Salva uma nova prova no banco de dados
+        Salva uma nova prova no banco de dados e cria questões estruturadas
 
         Args:
             prova_data: Dados da prova (nome e conteúdo)
@@ -42,8 +43,36 @@ class ProvaManagerService:
         self.db.commit()
         self.db.refresh(prova)
 
-        logger.info(f"Prova saved: {prova.id} ({prova.name})")
+        try:
+            questoes_data = LaTeXParserService.parse_to_questoes(prova_data.content)
 
+            if questoes_data:
+                for questao_info in questoes_data:
+                    questao = Questao(
+                        prova_id=prova.id,
+                        order=questao_info['order'],
+                        text=questao_info['text']
+                    )
+                    self.db.add(questao)
+                    self.db.flush()
+
+                    for opcao_info in questao_info['opcoes']:
+                        opcao = QuestaoOpcao(
+                            questao_id=questao.id,
+                            order=opcao_info['order'],
+                            text=opcao_info['text'],
+                            is_correct=opcao_info['is_correct']
+                        )
+                        self.db.add(opcao)
+
+                self.db.commit()
+                logger.info(f"Prova saved with {len(questoes_data)} questoes: {prova.id} ({prova.name})")
+            else:
+                logger.warning(f"Prova saved without questoes (no structured content found): {prova.id} ({prova.name})")
+        except Exception as e:
+            logger.error(f"Error parsing questoes for prova {prova.id}: {e}")
+
+        self.db.refresh(prova)
         return ProvaRead.from_orm(prova)
 
     async def list_provas(
@@ -130,7 +159,53 @@ class ProvaManagerService:
         self.db.commit()
         self.db.refresh(prova)
 
-        logger.info(f"Prova updated: {prova_id} ({prova.name})")
+        if prova_update.content is not None:
+            try:
+                old_questoes = self.db.exec(
+                    select(Questao).where(Questao.prova_id == prova_id)
+                ).all()
+
+                for questao in old_questoes:
+                    old_opcoes = self.db.exec(
+                        select(QuestaoOpcao).where(QuestaoOpcao.questao_id == questao.id)
+                    ).all()
+                    for opcao in old_opcoes:
+                        self.db.delete(opcao)
+                    self.db.delete(questao)
+
+                self.db.commit()
+
+                questoes_data = LaTeXParserService.parse_to_questoes(prova.content)
+
+                if questoes_data:
+                    for questao_info in questoes_data:
+                        questao = Questao(
+                            prova_id=prova.id,
+                            order=questao_info['order'],
+                            text=questao_info['text']
+                        )
+                        self.db.add(questao)
+                        self.db.flush()
+
+                        for opcao_info in questao_info['opcoes']:
+                            opcao = QuestaoOpcao(
+                                questao_id=questao.id,
+                                order=opcao_info['order'],
+                                text=opcao_info['text'],
+                                is_correct=opcao_info['is_correct']
+                            )
+                            self.db.add(opcao)
+
+                    self.db.commit()
+                    logger.info(f"Prova updated with {len(questoes_data)} questoes: {prova_id} ({prova.name})")
+                else:
+                    logger.warning(f"Prova updated without questoes (no structured content found): {prova_id} ({prova.name})")
+            except Exception as e:
+                logger.error(f"Error parsing questoes for updated prova {prova_id}: {e}")
+        else:
+            logger.info(f"Prova updated: {prova_id} ({prova.name})")
+
+        self.db.refresh(prova)
 
         return ProvaRead.from_orm(prova)
 
@@ -303,7 +378,7 @@ class ProvaManagerService:
             })
 
         # Atualizar conteúdo LaTeX gerado a partir das questões estruturadas
-        prova.content = self._questoes_to_latex(questoes_salvas)
+        prova.content = LaTeXParserService.questoes_to_latex(questoes_salvas)
         self.db.add(prova)
         self.db.commit()
         self.db.refresh(prova)
@@ -319,27 +394,3 @@ class ProvaManagerService:
             "created_by": str(prova.created_by) if prova.created_by else None,
             "questoes": questoes_salvas
         }
-
-    def _questoes_to_latex(self, questoes: List[dict]) -> str:
-        """
-        Converte questões estruturadas para formato LaTeX
-
-        Args:
-            questoes: Lista de questões com opções
-
-        Returns:
-            String no formato LaTeX
-        """
-        latex_parts = []
-
-        for questao in questoes:
-            # Adicionar texto da questão
-            latex_parts.append(f"Q: {questao['text']}")
-
-            # Adicionar opções
-            for opcao in questao['opcoes']:
-                letter = chr(97 + opcao['order'] - 1)  # a, b, c, d, e
-                asterisk = " *" if opcao['is_correct'] else ""
-                latex_parts.append(f"{letter}) {opcao['text']}{asterisk}")
-
-        return "\n\n".join(latex_parts)
