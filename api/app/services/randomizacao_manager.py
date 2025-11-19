@@ -351,21 +351,38 @@ class RandomizacaoManagerService:
         aluno = randomizacao.aluno
         questoes_originais = sorted(prova.questoes, key=lambda q: q.order)
 
-        # Construir documento LaTeX
-        latex_content = r"""\documentclass[12pt,a4paper]{article}
-\usepackage[utf8]{inputenc}
-\usepackage[brazil]{babel}
-\usepackage[margin=2cm]{geometry}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{enumitem}
+        latex_content = r"""\documentclass[a4paper]{article}
 
-\title{""" + prova.name + r"""}
-\date{}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{enumitem}
+\usepackage{array}
 
 \begin{document}
 
-\maketitle
+\noindent
+\begin{tabular}{|p{0.15\textwidth}|p{0.78\textwidth}|}
+\hline
+\textbf{PROVA} & \textbf{"""+ prova.name + r"""} \\
+\hline
+\textbf{ALUNO} & \textbf{"""+ aluno.nome + r"""} \\
+\hline
+\textbf{MATRICULA} & \textbf{"""+ aluno.matricula + r"""} \\
+\hline
+
+\textbf{DATA} & \textbf{} \\
+\hline
+\end{tabular}
+
+\vspace{0.2cm}
+
+\noindent
+\begin{tabular}{|p{0.08\textwidth}|p{0.27\textwidth}|p{0.16\textwidth}|p{0.16\textwidth}|p{0.06\textwidth}|p{0.10\textwidth}|}
+\hline
+\end{tabular}
+
+\vspace{0.5cm}
 
 """
         for idx_personalizado, idx_original in enumerate(randomizacao.questoes_order):
@@ -373,8 +390,8 @@ class RandomizacaoManagerService:
             questao_id_str = str(questao.id)
 
             questao_text = questao.text.replace('*', '').strip()
-            latex_content += f"\\textbf{{{idx_personalizado + 1}.}} {questao_text}\n\n"
-            latex_content += "\\begin{enumerate}[label=\\alph*)]\n"
+            latex_content += f"\\noindent\\textbf{{{idx_personalizado + 1}.}} {questao_text}\n\n"
+            latex_content += "\\begin{enumerate}[label=\\alph*), leftmargin=1cm, itemsep=0pt, topsep=2pt]\n"
 
             opcoes_originais = sorted(questao.opcoes, key=lambda o: o.order)
             alternativas_order_questao = randomizacao.alternativas_order.get(questao_id_str, [])

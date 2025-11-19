@@ -38,22 +38,12 @@ export class LaTeXCompiler {
 \\noindent
 \\begin{tabular}{|p{0.08\\textwidth}|p{0.27\\textwidth}|p{0.16\\textwidth}|p{0.16\\textwidth}|p{0.06\\textwidth}|p{0.10\\textwidth}|}
 \\hline
-\\textbf{NOME} & & \\textbf{MATRICULA} & & \\textbf{DATA} & \\\\
-\\hline
 \\end{tabular}
 
 \\vspace{0.5cm}
 
 `,
     question: `\\noindent\\textbf{%ID%.} %QUESTION%
-
-\\begin{enumerate}[label=\\alph*), leftmargin=1cm, itemsep=0pt, topsep=2pt]
-%CHOICES%
-\\end{enumerate}
-
-\\vspace{0.3cm}
-`,
-    questionMultiple: `\\noindent\\textbf{%ID%.} %QUESTION% \\textit{(multipla escolha)}
 
 \\begin{enumerate}[label=\\alph*), leftmargin=1cm, itemsep=0pt, topsep=2pt]
 %CHOICES%
