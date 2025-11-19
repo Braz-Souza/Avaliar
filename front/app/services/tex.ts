@@ -137,12 +137,16 @@ export class LaTeXCompiler {
       // Importa configuracao da API
       const { API_CONFIG, getResourceUrl } = await import('../config/api');
 
+      // Obtem o token do localStorage
+      const token = localStorage.getItem('auth_token');
+
       console.log('Enviando requisicao de compilacao para:', `${API_CONFIG.baseURL}/latex/compile`);
 
       const response = await fetch(`${API_CONFIG.baseURL}/latex/compile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           latex: latexContent,
@@ -193,12 +197,16 @@ export class LaTeXCompiler {
       // Importa configuracao da API
       const { API_CONFIG, getResourceUrl } = await import('../config/api');
 
+      // Obtem o token do localStorage
+      const token = localStorage.getItem('auth_token');
+
       console.log('Enviando requisicao de compilacao do cartao resposta para:', `${API_CONFIG.baseURL}/latex/compile-answer-sheet`);
 
       const response = await fetch(`${API_CONFIG.baseURL}/latex/compile-answer-sheet`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           latex: latexContent,
@@ -252,12 +260,16 @@ export class LaTeXCompiler {
       // Importa configuracao da API
       const { API_CONFIG, getResourceUrl } = await import('../config/api');
 
+      // Obtem o token do localStorage
+      const token = localStorage.getItem('auth_token');
+
       console.log('Enviando requisicao de compilacao do gabarito para:', `${API_CONFIG.baseURL}/latex/compile-answer-key`);
 
       const response = await fetch(`${API_CONFIG.baseURL}/latex/compile-answer-key`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           latex: latexContent,
