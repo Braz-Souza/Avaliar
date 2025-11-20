@@ -28,6 +28,15 @@ cd api
 uv run alembic upgrade head
 ```
 
+OMRChecker:
+Para rodar a correção foi utilizado OMRChecker como solução simples e eficaz, para configurar é preciso utilizar o comando setup.sh dentro da pasta de correção
+
+```bash
+cd cd api/correction
+./setup.sh
+```
+
+
 FRONT:
 
 ```bash

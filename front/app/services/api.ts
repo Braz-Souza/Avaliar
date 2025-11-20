@@ -337,6 +337,54 @@ export const alunosApi = {
   },
 };
 
+// Image Correction API
+export interface ImageCorrectionResponse {
+  id: string;
+  aluno_id: string;
+  turma_id: string;
+  prova_id: string;
+  corrigido_por: string;
+  data_correcao: string;
+  nota: number | null;
+  total_questoes: number;
+  acertos: number | null;
+  respostas: Array<{
+    id: string;
+    correcao_id: string;
+    questao_numero: number;
+    resposta_marcada: string;
+    resposta_correta: string | null;
+    esta_correta: boolean | null;
+  }>;
+  aluno?: any;
+  turma?: any;
+  prova?: any;
+  corretor?: any;
+}
+
+export const imageCorrectionApi = {
+  // Upload image and process
+  uploadAndProcess: async (
+    imageFile: File,
+    alunoId: string,
+    turmaId: string,
+    provaId: string
+  ): Promise<ImageCorrectionResponse> => {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+    formData.append('aluno_id', alunoId);
+    formData.append('turma_id', turmaId);
+    formData.append('prova_id', provaId);
+
+    const response = await api.post('/image-correction/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+};
+
 // Auth API
 export interface LoginRequest {
   password: string;

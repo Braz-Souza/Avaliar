@@ -538,3 +538,80 @@ class RandomizacaoManagerService:
         logger.info(f"ZIP criado com {len(alunos_pdfs)} PDFs para turma_prova {turma_prova_id}")
 
         return zip_bytes, zip_filename
+
+    async def get_correct_answers_for_aluno(
+        self,
+        aluno_id: UUID,
+        prova_id: UUID
+    ) -> dict[int, str]:
+        """
+        Obtém as respostas corretas personalizadas para um aluno específico
+        baseado na randomização de questões e alternativas.
+
+        Args:
+            aluno_id: ID do aluno
+            prova_id: ID da prova
+
+        Returns:
+            Dicionário mapeando número da questão (1-indexed) para letra da resposta correta (A, B, C, etc.)
+            Exemplo: {1: 'A', 2: 'C', 3: 'B', ...}
+
+        Raises:
+            ValueError: Se randomização não existir para este aluno e prova
+        """
+        # Buscar a randomização completa com todos os relacionamentos necessários
+        randomizacao_completa = self.db.execute(
+            select(AlunoRandomizacao)
+            .options(
+                selectinload(AlunoRandomizacao.turma_prova)
+                .selectinload(TurmaProva.prova)
+                .selectinload(Prova.questoes)
+                .selectinload(Questao.opcoes)
+            )
+            .join(TurmaProva)
+            .where(
+                AlunoRandomizacao.aluno_id == aluno_id,
+                TurmaProva.prova_id == prova_id
+            )
+        ).scalar_one_or_none()
+
+        if not randomizacao_completa:
+            raise ValueError(f"Randomização não encontrada para aluno {aluno_id} e prova {prova_id}")
+
+        prova = randomizacao_completa.turma_prova.prova
+        questoes_originais = sorted(prova.questoes, key=lambda q: q.order)
+
+        # Criar dicionário de respostas corretas conforme a ordem personalizada
+        correct_answers = {}
+
+        for idx_personalizado, idx_original in enumerate(randomizacao_completa.questoes_order):
+            questao = questoes_originais[idx_original]
+            questao_id_str = str(questao.id)
+
+            # Obter opções ordenadas originalmente
+            opcoes_originais = sorted(questao.opcoes, key=lambda o: o.order)
+
+            # Encontrar qual opção é correta na ordem original
+            opcao_correta_idx_original = None
+            for idx, opcao in enumerate(opcoes_originais):
+                if opcao.is_correct:
+                    opcao_correta_idx_original = idx
+                    break
+
+            if opcao_correta_idx_original is None:
+                logger.warning(f"Questão {questao.id} não possui opção correta marcada")
+                continue
+
+            # Obter a ordem das alternativas randomizadas para esta questão
+            alternativas_order_questao = randomizacao_completa.alternativas_order.get(questao_id_str, [])
+
+            # Encontrar a posição da opção correta na ordem randomizada
+            if opcao_correta_idx_original in alternativas_order_questao:
+                posicao_randomizada = alternativas_order_questao.index(opcao_correta_idx_original)
+                # Converter índice para letra (0=A, 1=B, 2=C, etc.)
+                letra_correta = chr(65 + posicao_randomizada)  # 65 é o código ASCII de 'A'
+                correct_answers[idx_personalizado + 1] = letra_correta
+
+        logger.info(f"Respostas corretas obtidas para aluno {aluno_id} e prova {prova_id}: {len(correct_answers)} questões")
+
+        return correct_answers

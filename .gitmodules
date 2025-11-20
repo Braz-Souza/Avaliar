@@ -1,0 +1,3 @@
+[submodule "api/correction/OMRChecker"]
+	path = api/correction/OMRChecker
+	url = https://github.com/Udayraj123/OMRChecker.git

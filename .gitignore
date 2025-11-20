@@ -36,6 +36,7 @@ front/yarn-error.log*
 api/static/pdfs/*
 api/static/latex_sources/*
 api/logs/*
+api/correction/images/*
 
 .DS_Store
 .vscode

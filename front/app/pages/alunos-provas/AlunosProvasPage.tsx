@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import { randomizacaoApi, alunosApi, provasApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData } from "../../services/api";
-import { ArrowLeft, Download, Eye, Shuffle, PackageOpen } from "lucide-react";
+import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData } from "../../services/api";
+import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 export function AlunosProvasPage() {
@@ -21,6 +21,8 @@ export function AlunosProvasPage() {
   const [downloadingZip, setDownloadingZip] = useState(false);
   const [downloadingCartao, setDownloadingCartao] = useState(false);
   const [downloadingGabarito, setDownloadingGabarito] = useState<{ [key: string]: boolean }>({});
+  const [uploadingImage, setUploadingImage] = useState<{ [key: string]: boolean }>({});
+  const [dragOverAluno, setDragOverAluno] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -221,6 +223,79 @@ export function AlunosProvasPage() {
     }
   };
 
+  const handleImageUpload = async (alunoId: string, file: File) => {
+    if (!turmaId || !provaId) {
+      alert('❌ Erro: turmaId ou provaId não encontrado');
+      return;
+    }
+
+    try {
+      setUploadingImage(prev => ({ ...prev, [alunoId]: true }));
+
+      // Validar se é uma imagem
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, envie apenas arquivos de imagem');
+        return;
+      }
+
+      // Upload e processar imagem com os IDs necessários
+      const result = await imageCorrectionApi.uploadAndProcess(
+        file,
+        alunoId,
+        turmaId,
+        provaId
+      );
+
+      // Formatar resultados da correção
+      let correctionResults = '✅ Correção Salva com Sucesso!\n';
+      correctionResults += '═══════════════════════════\n\n';
+      correctionResults += `📊 Total de questões: ${result.total_questoes}\n`;
+      correctionResults += `📝 Respostas detectadas: ${result.respostas.length}\n\n`;
+      correctionResults += 'Respostas marcadas:\n';
+      correctionResults += '─────────────────────\n';
+
+      // Ordenar as questões numericamente
+      const sortedRespostas = result.respostas
+        .sort((a, b) => a.questao_numero - b.questao_numero);
+
+      sortedRespostas.forEach((resposta) => {
+        correctionResults += `Questão ${resposta.questao_numero}: ${resposta.resposta_marcada}\n`;
+      });
+
+      alert(correctionResults.trim());
+
+    } catch (err: any) {
+      console.error('Erro ao processar imagem:', err);
+      const errorMessage = err.response?.data?.detail || 'Erro ao processar imagem';
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setUploadingImage(prev => ({ ...prev, [alunoId]: false }));
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, alunoId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverAluno(alunoId);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverAluno(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, alunoId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverAluno(null);
+
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      await handleImageUpload(alunoId, files[0]);
+    }
+  };
+
   const getQuestionOrderDescription = (questoesOrder: number[]) => {
     return questoesOrder.map((originalIndex, displayPosition) =>
       `Questão ${displayPosition + 1} (original: ${originalIndex + 1})`
@@ -357,7 +432,14 @@ export function AlunosProvasPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+                <div className="alert alert-info mb-4">
+                  <Upload className="w-5 h-5" />
+                  <span>
+                    <strong>Dica:</strong> Arraste uma imagem sobre a linha de um aluno para processá-la automaticamente.
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
                 <table className="table table-zebra">
                   <thead>
                     <tr>
@@ -369,10 +451,31 @@ export function AlunosProvasPage() {
                   <tbody>
                     {alunos.map((alunoRand) => {
                       const aluno = alunosDetails[alunoRand.aluno_id];
+                      const isDragging = dragOverAluno === alunoRand.aluno_id;
+                      const isUploading = uploadingImage[alunoRand.aluno_id];
+
                       return (
-                        <tr key={alunoRand.id}>
+                        <tr
+                          key={alunoRand.id}
+                          onDragOver={(e) => handleDragOver(e, alunoRand.aluno_id)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, alunoRand.aluno_id)}
+                          className={`
+                            transition-all duration-200
+                            ${isDragging ? 'bg-primary bg-opacity-10 scale-[1.02]' : ''}
+                            ${isUploading ? 'opacity-50' : ''}
+                          `}
+                        >
                           <td className="font-medium">
-                            {aluno?.nome || 'Carregando...'}
+                            <div className="flex items-center gap-2">
+                              {isUploading && (
+                                <span className="loading loading-spinner loading-sm"></span>
+                              )}
+                              {isDragging && (
+                                <Upload className="w-4 h-4 text-primary animate-bounce" />
+                              )}
+                              {aluno?.nome || 'Carregando...'}
+                            </div>
                           </td>
                           <td>{aluno?.matricula || '-'}</td>
                           <td>
@@ -429,6 +532,7 @@ export function AlunosProvasPage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         </div>
