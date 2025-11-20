@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData } from "../../services/api";
-import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload } from "lucide-react";
+import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData, type ImageCorrectionResponse } from "../../services/api";
+import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload, CheckCircle, XCircle } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
 export function AlunosProvasPage() {
@@ -14,6 +14,7 @@ export function AlunosProvasPage() {
   const { user } = useAuth();
   const [alunos, setAlunos] = useState<AlunoRandomizacaoInfo[]>([]);
   const [alunosDetails, setAlunosDetails] = useState<{ [key: string]: AlunoInfo }>({});
+  const [correcoes, setCorrecoes] = useState<{ [key: string]: ImageCorrectionResponse }>({});
   const [prova, setProva] = useState<ProvaInfo | null>(null);
   const [turmaProvaId, setTurmaProvaId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +79,19 @@ export function AlunosProvasPage() {
         }
       }
       setAlunosDetails(alunosDetailsMap);
+
+      // Load correções para a turma e prova
+      try {
+        const correcoesData = await imageCorrectionApi.getCorrecoesByTurmaProva(turmaId, provaId);
+        const correcoesMap: { [key: string]: ImageCorrectionResponse } = {};
+        correcoesData.forEach(correcao => {
+          correcoesMap[correcao.aluno_id] = correcao;
+        });
+        setCorrecoes(correcoesMap);
+      } catch (err) {
+        console.error('Erro ao carregar correções:', err);
+        // Não é um erro crítico, continuar sem as correções
+      }
 
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
@@ -264,6 +278,20 @@ export function AlunosProvasPage() {
 
       alert(correctionResults.trim());
 
+      // Recarregar as correções após o upload
+      if (turmaId && provaId) {
+        try {
+          const correcoesData = await imageCorrectionApi.getCorrecoesByTurmaProva(turmaId, provaId);
+          const correcoesMap: { [key: string]: ImageCorrectionResponse } = {};
+          correcoesData.forEach(correcao => {
+            correcoesMap[correcao.aluno_id] = correcao;
+          });
+          setCorrecoes(correcoesMap);
+        } catch (err) {
+          console.error('Erro ao recarregar correções:', err);
+        }
+      }
+
     } catch (err: any) {
       console.error('Erro ao processar imagem:', err);
       const errorMessage = err.response?.data?.detail || 'Erro ao processar imagem';
@@ -276,6 +304,12 @@ export function AlunosProvasPage() {
   const handleDragOver = (e: React.DragEvent, alunoId: string) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Não permitir drag over se já existe correção
+    if (correcoes[alunoId]) {
+      return;
+    }
+
     setDragOverAluno(alunoId);
   };
 
@@ -289,6 +323,12 @@ export function AlunosProvasPage() {
     e.preventDefault();
     e.stopPropagation();
     setDragOverAluno(null);
+
+    // Não permitir drop se já existe correção
+    if (correcoes[alunoId]) {
+      alert('❌ Este aluno já possui uma correção cadastrada!');
+      return;
+    }
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
@@ -412,14 +452,18 @@ export function AlunosProvasPage() {
                   <div className="stat-value">{alunos.length}</div>
                 </div>
                 <div className="stat">
+                  <div className="stat-title">Provas Corrigidas</div>
+                  <div className="stat-value text-success">{Object.keys(correcoes).length}</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-title">Pendentes</div>
+                  <div className="stat-value text-warning">{alunos.length - Object.keys(correcoes).length}</div>
+                </div>
+                <div className="stat">
                   <div className="stat-title">Questões por Prova</div>
                   <div className="stat-value">
                     {alunos.length > 0 ? alunos[0].questoes_order.length : 0}
                   </div>
-                </div>
-                <div className="stat">
-                  <div className="stat-title">Randomizações</div>
-                  <div className="stat-value">{alunos.length}</div>
                 </div>
               </div>
             </div>
@@ -435,9 +479,13 @@ export function AlunosProvasPage() {
               <>
                 <div className="alert alert-info mb-4">
                   <Upload className="w-5 h-5" />
-                  <span>
-                    <strong>Dica:</strong> Arraste uma imagem sobre a linha de um aluno para processá-la automaticamente.
-                  </span>
+                  <div>
+                    <div className="font-bold">Como enviar correções:</div>
+                    <div className="text-sm">
+                      Arraste uma imagem do cartão resposta sobre a linha de um aluno para processá-la automaticamente.
+                      Alunos que já possuem correção não aceitarão novos envios.
+                    </div>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                 <table className="table table-zebra">
@@ -445,25 +493,29 @@ export function AlunosProvasPage() {
                     <tr>
                       <th>Aluno</th>
                       <th>Matrícula</th>
+                      <th>Status / Nota</th>
                       <th className="text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {alunos.map((alunoRand) => {
                       const aluno = alunosDetails[alunoRand.aluno_id];
+                      const correcao = correcoes[alunoRand.aluno_id];
                       const isDragging = dragOverAluno === alunoRand.aluno_id;
                       const isUploading = uploadingImage[alunoRand.aluno_id];
+                      const hasCorrecao = !!correcao;
 
                       return (
                         <tr
                           key={alunoRand.id}
-                          onDragOver={(e) => handleDragOver(e, alunoRand.aluno_id)}
+                          onDragOver={(e) => !hasCorrecao && handleDragOver(e, alunoRand.aluno_id)}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, alunoRand.aluno_id)}
                           className={`
                             transition-all duration-200
-                            ${isDragging ? 'bg-primary bg-opacity-10 scale-[1.02]' : ''}
+                            ${isDragging && !hasCorrecao ? 'bg-primary bg-opacity-10 scale-[1.02]' : ''}
                             ${isUploading ? 'opacity-50' : ''}
+                            ${hasCorrecao ? 'bg-success bg-opacity-5' : ''}
                           `}
                         >
                           <td className="font-medium">
@@ -471,13 +523,28 @@ export function AlunosProvasPage() {
                               {isUploading && (
                                 <span className="loading loading-spinner loading-sm"></span>
                               )}
-                              {isDragging && (
+                              {isDragging && !hasCorrecao && (
                                 <Upload className="w-4 h-4 text-primary animate-bounce" />
+                              )}
+                              {hasCorrecao && (
+                                <CheckCircle className="w-4 h-4 text-success" />
                               )}
                               {aluno?.nome || 'Carregando...'}
                             </div>
                           </td>
                           <td>{aluno?.matricula || '-'}</td>
+                          <td>
+                            {hasCorrecao ? (
+                              <div className="flex items-center gap-2">
+                                <div className="badge badge-success badge-sm">Corrigido</div>
+                                <span className="text-sm font-medium">
+                                  {correcao.nota?.toFixed(1) || 0} | {correcao.acertos || 0} / {correcao.total_questoes || 0}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="badge badge-warning badge-sm">Pendente</div>
+                            )}
+                          </td>
                           <td>
                             <div className="flex gap-2 justify-end">
                               <button

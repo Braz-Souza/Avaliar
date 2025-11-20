@@ -383,6 +383,21 @@ export const imageCorrectionApi = {
     });
     return response.data;
   },
+
+  // Get all corrections for a turma and prova
+  getCorrecoesByTurmaProva: async (
+    turmaId: string,
+    provaId: string
+  ): Promise<ImageCorrectionResponse[]> => {
+    const response = await api.get('/image-correction/correcoes', {
+      params: {
+        turma_id: turmaId,
+        prova_id: provaId,
+        limit: 1000
+      }
+    });
+    return response.data;
+  },
 };
 
 // Auth API
