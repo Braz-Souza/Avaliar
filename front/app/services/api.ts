@@ -217,6 +217,14 @@ export const randomizacaoApi = {
     });
     return response.data;
   },
+
+  // Download gabarito personalizado do aluno PDF
+  downloadGabaritoAluno: async (alunoId: string, provaId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/gabarito/${alunoId}/${provaId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
 };
 
 // Turmas API

@@ -4,17 +4,21 @@ Router para endpoints de randomização de provas
 TODAS AS ROTAS REQUEREM AUTENTICAÇÃO (via middleware global)
 """
 
+import logging
 from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
+logger = logging.getLogger(__name__)
+
 from app.db.models.randomizacao import TurmaProvaRead, AlunoRandomizacaoRead
 from app.services.randomizacao_manager import RandomizacaoManagerService
 from app.services.turma_manager import TurmaManagerService
 from app.services.prova_manager import ProvaManagerService
 from app.services.latex_compiler import LaTeXCompilerService
+from app.services.gabarito_service import GabaritoService
 from app.core.database import get_db
 from app.core.dependencies import CurrentUser
 
@@ -391,3 +395,118 @@ async def download_all_provas_zip(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao gerar ZIP das provas: {str(e)}")
+
+
+@router.get("/gabarito/{aluno_id}/{prova_id}")
+async def download_gabarito_aluno(
+    aluno_id: UUID,
+    prova_id: UUID,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager)
+):
+    """
+    Baixa o gabarito personalizado em PDF para um aluno específico - REQUER AUTENTICAÇÃO
+
+    Args:
+        aluno_id: ID do aluno
+        prova_id: ID da prova
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+
+    Returns:
+        Response com arquivo PDF do gabarito personalizado
+
+    Raises:
+        HTTPException: Se aluno/prova não existirem ou erro na geração do PDF
+    """
+    try:
+        # OBTER QUESTOES CORRETAS
+        # Buscar a randomização do aluno
+        randomizacao = await manager.get_aluno_randomizacao(aluno_id, prova_id)
+        if not randomizacao:
+            raise HTTPException(status_code=404, detail="Randomização não encontrada para este aluno e prova")
+
+        # Buscar os dados completos da prova e questões
+        from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
+        from app.db.models.randomizacao import TurmaProva, AlunoRandomizacao
+        from app.db.models.prova import Prova
+        from app.db.models.questao import Questao
+
+        randomizacao_completa = manager.db.execute(
+            select(AlunoRandomizacao)
+            .options(
+                selectinload(AlunoRandomizacao.turma_prova)
+                .selectinload(TurmaProva.prova)
+                .selectinload(Prova.questoes)
+                .selectinload(Questao.opcoes)
+            )
+            .where(
+                AlunoRandomizacao.aluno_id == aluno_id,
+                AlunoRandomizacao.turma_prova_id == randomizacao.turma_prova_id
+            )
+        ).scalar_one_or_none()
+
+        if not randomizacao_completa:
+            raise HTTPException(status_code=404, detail="Dados da randomização não encontrados")
+
+        prova = randomizacao_completa.turma_prova.prova
+        questoes_originais = sorted(prova.questoes, key=lambda q: q.order)
+
+        # Criar dicionário de respostas corretas conforme a ordem personalizada
+        correct_answers = {}
+        for idx_personalizado, idx_original in enumerate(randomizacao_completa.questoes_order):
+            questao = questoes_originais[idx_original]
+            questao_id_str = str(questao.id)
+
+            # Obter opções ordenadas originalmente
+            opcoes_originais = sorted(questao.opcoes, key=lambda o: o.order)
+
+            # Encontrar qual opção é correta na ordem original
+            opcao_correta_idx_original = None
+            for idx, opcao in enumerate(opcoes_originais):
+                if opcao.is_correct:
+                    opcao_correta_idx_original = idx
+                    break
+
+            if opcao_correta_idx_original is None:
+                logger.warning(f"Questão {questao.id} não possui opção correta marcada")
+                continue
+
+            # Obter a ordem das alternativas randomizadas para esta questão
+            alternativas_order_questao = randomizacao_completa.alternativas_order.get(questao_id_str, [])
+
+            # Encontrar a posição da opção correta na ordem randomizada
+            if opcao_correta_idx_original in alternativas_order_questao:
+                posicao_randomizada = alternativas_order_questao.index(opcao_correta_idx_original)
+                # Converter índice para letra (0=A, 1=B, 2=C, etc.)
+                letra_correta = chr(65 + posicao_randomizada)  # 65 é o código ASCII de 'A'
+                correct_answers[idx_personalizado + 1] = letra_correta
+
+        # USAR GABARITO SERVICE PASSANDO AS QUESTOES CORRETAS
+        gabarito_service = GabaritoService()
+        success, message, pdf_path = gabarito_service.generate_pdf(
+            correct_answers=correct_answers,
+            filename=f"gabarito_aluno_{aluno_id}_prova_{prova_id}"
+        )
+
+        if not success or not pdf_path:
+            raise HTTPException(status_code=500, detail=f"Erro ao gerar gabarito: {message}")
+
+        # Ler o PDF e retornar
+        pdf_bytes = gabarito_service.get_pdf_blob(pdf_path)
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="Erro ao ler PDF do gabarito")
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=gabarito_aluno_{aluno_id}.pdf"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar gabarito: {str(e)}")

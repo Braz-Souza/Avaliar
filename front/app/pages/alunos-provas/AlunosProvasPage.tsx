@@ -19,6 +19,8 @@ export function AlunosProvasPage() {
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<{ [key: string]: boolean }>({});
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [downloadingCartao, setDownloadingCartao] = useState(false);
+  const [downloadingGabarito, setDownloadingGabarito] = useState<{ [key: string]: boolean }>({});
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -138,6 +140,87 @@ export function AlunosProvasPage() {
     }
   };
 
+  const handleDownloadCartaoResposta = async () => {
+    try {
+      setDownloadingCartao(true);
+
+      // Chama o endpoint do backend diretamente
+      const token = localStorage.getItem('auth_token');
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/latex/compile-answer-sheet`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success || !result.pdfUrl) {
+        throw new Error(result.error || 'Erro ao gerar cartão resposta');
+      }
+
+      // Construir a URL completa do PDF
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const pdfUrl = result.pdfUrl.startsWith('http')
+        ? result.pdfUrl
+        : `${baseUrl}${result.pdfUrl}`;
+
+      // Baixar o PDF da URL gerada
+      const pdfResponse = await fetch(pdfUrl, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const pdfBlob = await pdfResponse.blob();
+
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cartao_resposta.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error('Erro ao baixar cartão resposta:', err);
+      alert('Erro ao baixar cartão resposta');
+    } finally {
+      setDownloadingCartao(false);
+    }
+  };
+
+  const handleDownloadGabarito = async (alunoId: string, alunoName: string) => {
+    if (!provaId) return;
+
+    try {
+      setDownloadingGabarito(prev => ({ ...prev, [alunoId]: true }));
+
+      const pdfBlob = await randomizacaoApi.downloadGabaritoAluno(alunoId, provaId);
+
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `gabarito_${alunoName.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error('Erro ao baixar gabarito:', err);
+      alert('Erro ao baixar gabarito do aluno');
+    } finally {
+      setDownloadingGabarito(prev => ({ ...prev, [alunoId]: false }));
+    }
+  };
+
   const getQuestionOrderDescription = (questoesOrder: number[]) => {
     return questoesOrder.map((originalIndex, displayPosition) =>
       `Questão ${displayPosition + 1} (original: ${originalIndex + 1})`
@@ -198,6 +281,24 @@ export function AlunosProvasPage() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                className={`btn btn-secondary gap-2 ${downloadingCartao ? 'loading' : ''}`}
+                onClick={handleDownloadCartaoResposta}
+                disabled={downloadingCartao}
+                title="Baixar cartão resposta em PDF"
+              >
+                {downloadingCartao ? (
+                  <>
+                    <span className="loading loading-spinner loading-sm"></span>
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Cartão Resposta
+                  </>
+                )}
+              </button>
               <button
                 className={`btn btn-primary gap-2 ${downloadingZip ? 'loading' : ''}`}
                 onClick={handleDownloadAllZip}
@@ -290,6 +391,21 @@ export function AlunosProvasPage() {
                               >
                                 <Eye className="w-4 h-4" />
                                 Detalhes
+                              </button>
+                              <button
+                                className={`btn btn-sm btn-warning btn-outline gap-2 ${
+                                  downloadingGabarito[alunoRand.aluno_id] ? 'loading' : ''
+                                }`}
+                                onClick={() => handleDownloadGabarito(alunoRand.aluno_id, aluno?.nome || '')}
+                                disabled={downloadingGabarito[alunoRand.aluno_id]}
+                                title="Baixar gabarito personalizado do aluno"
+                              >
+                                {downloadingGabarito[alunoRand.aluno_id] ? (
+                                  <span className="loading loading-spinner loading-sm"></span>
+                                ) : (
+                                  <Download className="w-4 h-4" />
+                                )}
+                                Gabarito
                               </button>
                               <button
                                 className={`btn btn-sm btn-success btn-outline gap-2 ${

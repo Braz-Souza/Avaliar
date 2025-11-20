@@ -205,6 +205,30 @@ class RandomizacaoManagerService:
             for tp in turma_provas
         ]
 
+    async def get_turma_prova(self, turma_prova_id: UUID) -> Optional[TurmaProvaRead]:
+        """
+        Obtém uma ligação turma-prova específica
+
+        Args:
+            turma_prova_id: ID da ligação turma-prova
+
+        Returns:
+            TurmaProvaRead ou None se não encontrado
+        """
+        turma_prova = self.db.execute(
+            select(TurmaProva).where(TurmaProva.id == turma_prova_id)
+        ).scalar_one_or_none()
+
+        if not turma_prova:
+            return None
+
+        return TurmaProvaRead(
+            id=turma_prova.id,
+            turma_id=turma_prova.turma_id,
+            prova_id=turma_prova.prova_id,
+            created_at=turma_prova.created_at
+        )
+
     async def get_aluno_randomizacoes(
         self,
         turma_prova_id: UUID
