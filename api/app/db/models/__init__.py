@@ -18,6 +18,7 @@ from .correcao import (
     Correcao, CorrecaoCreate, CorrecaoRead, CorrecaoReadWithDetails,
     CorrecaoResposta, CorrecaoRespostaCreate, CorrecaoRespostaRead
 )
+from .acesso import Acesso, AcessoCreate, AcessoRead, AcessoReadWithPagination
 
 __all__ = [
     "Prova",
@@ -55,7 +56,11 @@ __all__ = [
     "CorrecaoReadWithDetails",
     "CorrecaoResposta",
     "CorrecaoRespostaCreate",
-    "CorrecaoRespostaRead"
+    "CorrecaoRespostaRead",
+    "Acesso",
+    "AcessoCreate",
+    "AcessoRead",
+    "AcessoReadWithPagination"
 ]
 
 # Rebuild models to resolve forward references
@@ -68,3 +73,4 @@ AlunoRandomizacaoRead.model_rebuild()
 CorrecaoRead.model_rebuild()
 CorrecaoReadWithDetails.model_rebuild()
 CorrecaoRespostaRead.model_rebuild()
+AcessoRead.model_rebuild()
