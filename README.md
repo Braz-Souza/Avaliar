@@ -83,6 +83,7 @@ sudo apt-get install -y \
 sudo apt install -y build-essential
 sudo apt install -y git
 sudo apt install -y python3-venv
+sudo apt-get install -y psmisc
 
 # se nao tiver docker
 curl -fsSL https://get.docker.com -o get-docker.sh
@@ -146,16 +147,15 @@ nvm install v22
 ```bash
 cd ~/Avaliar
 git pull
-
 cd ~/Avaliar/api
+fuser -k 8000/tcp || true
 uv python install 3.12
 uv python pin 3.12
 uv sync
 uv run alembic upgrade head
 nohup uv run main.py > app.log 2>&1 &
-
 cd ~/Avaliar/front
-
+fuser -k 3000/tcp || true
 nvm use v22
 npm install
 npm run build

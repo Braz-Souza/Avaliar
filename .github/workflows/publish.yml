@@ -21,12 +21,14 @@ jobs:
             cd Avaliar
             git pull --rebase -Xours
             cd ~/Avaliar/api
+            fuser -k 8000/tcp || true
             uv python install 3.12
             uv python pin 3.12
             uv sync
             uv run alembic upgrade head
             nohup uv run main.py > app.log 2>&1 &
             cd ~/Avaliar/front
+            fuser -k 3000/tcp || true
             nvm use v22
             npm install
             npm run build
