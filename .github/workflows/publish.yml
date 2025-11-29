@@ -1,0 +1,31 @@
+name: SSH into VPS and deploy
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy over SSH
+
+    steps:
+      - name: Deploy project over SSH
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd Avaliar
+            git pull --rebase -Xours
+            cd ~/Avaliar/api
+            uv python install 3.12
+            uv python pin 3.12
+            uv sync
+            uv run alembic upgrade head
+            nohup uv run main.py > app.log 2>&1 &
+            cd ~/Avaliar/front
+            npm run build
+            nohup npm start > app.log 2>&1 &
