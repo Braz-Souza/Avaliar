@@ -139,9 +139,48 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 nvm install v22
-
-# TROCAR DENTRO DO 
 ```
+
+#### CONFIG DO NGINX
+
+```bash
+
+sudo apt install nginx -y
+sudo nano /etc/nginx/sites-available/avaliar
+```
+
+```nginx
+server {
+    listen 80;
+    server_name url.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+```bash
+sudo rm /etc/nginx/sites-enabled/default
+sudo ln -s /etc/nginx/sites-available/avaliar /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+sudo tail -f /var/log/nginx/error.log
+sudo apt install python3 python3-dev python3-venv libaugeas-dev gcc
+sudo python3 -m venv /opt/certbot/
+sudo /opt/certbot/bin/pip install --upgrade pip
+sudo ln -s /opt/certbot/bin/certbot /usr/bin/certbot
+sudo certbot --nginx
+```
+
 
 ### Continuous Development
 
