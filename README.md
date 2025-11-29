@@ -120,6 +120,7 @@ cd
 
 git clone https://github.com/Braz-Souza/Avaliar Avaliar
 cd ~/Avaliar/api
+# git checkout production OU git checkout staging
 
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.local/bin/env
