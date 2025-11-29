@@ -156,6 +156,7 @@ nohup uv run main.py > app.log 2>&1 &
 
 cd ~/Avaliar/front
 
+nvm use v22
 npm install
 npm run build
 nohup npm start > app.log 2>&1 &
@@ -234,6 +235,7 @@ cd ..
 nohup uv run main.py > app.log 2>&1 &
 
 cd ~/Avaliar/front
+echo VITE_API_BASE_URL=http://localhost:8000/api > .env
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
