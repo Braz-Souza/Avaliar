@@ -156,6 +156,7 @@ nohup uv run main.py > app.log 2>&1 &
 
 cd ~/Avaliar/front
 
+npm install
 npm run build
 nohup npm start > app.log 2>&1 &
 ```
