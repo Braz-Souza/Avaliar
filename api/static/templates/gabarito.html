@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gabarito - 20 Questões</title>
+    <title>Gabarito - 30 Questões</title>
     <style>
         @page {
             size: A4;
@@ -127,7 +127,8 @@
         .question-row {
             display: flex;
             align-items: center;
-            padding: 8px 0;
+            /* Padding reduzido conforme o NOVO CARTÃO para caber 30 questões */
+            padding: 1.5px 0; 
         }
 
         .question-number {
@@ -161,8 +162,10 @@
             border: 2px solid #000;
             border-radius: 50%;
             background-color: white;
+            cursor: pointer; /* Adicionado para indicar interatividade no gabarito */
         }
 
+        /* Estilo adicionado do Antigo Gabarito para marcar respostas */
         .bubble.filled {
             background-color: #000;
         }
@@ -176,21 +179,6 @@
             font-size: 9px;
         }
 
-        .barcode-area {
-            margin-top: 15px;
-            text-align: center;
-            border: 2px dashed #000;
-            padding: 10px;
-            font-size: 9px;
-        }
-
-        .barcode-area .barcode {
-            font-family: 'Courier New', monospace;
-            font-size: 24px;
-            letter-spacing: 2px;
-            margin: 5px 0;
-        }
-
         @media print {
             body {
                 width: 210mm;
@@ -200,13 +188,11 @@
 </head>
 <body>
     <div class="omr-sheet">
-        <!-- Cabeçalho -->
         <div class="header">
             <h1>GABARITO - AVALIAR</h1>
-            <p>Folha de Respostas - 20 Questões de Múltipla Escolha</p>
+            <p>Folha de Respostas - 30 Questões de Múltipla Escolha</p>
         </div>
 
-        <!-- Informações do Aluno -->
         <div class="student-info">
             <div class="info-row">
                 <div class="info-label">NOME:</div>
@@ -222,7 +208,6 @@
             </div>
         </div>
 
-        <!-- Instruções -->
         <div class="instructions">
             <h3>⚠ Instruções Importantes:</h3>
             <ul>
@@ -234,221 +219,255 @@
             </ul>
         </div>
 
-        <!-- Seção de Questões -->
         <div class="questions-section">
             <div class="questions-title">Folha de Respostas</div>
             <div class="questions-container">
-                <!-- Questões 1-10 (Coluna Esquerda) -->
                 <div>
-                    <div class="question-row">
-                        <div class="question-number">01.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="1" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="1" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="1" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="1" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="1" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">02.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="2" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="2" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="2" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="2" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="2" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">03.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="3" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="3" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="3" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="3" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="3" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">04.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="4" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="4" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="4" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="4" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="4" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">05.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="5" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="5" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="5" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="5" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="5" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">06.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="6" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="6" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="6" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="6" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="6" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">07.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="7" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="7" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="7" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="7" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="7" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">08.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="8" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="8" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="8" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="8" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="8" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">09.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="9" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="9" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="9" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="9" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="9" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">10.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="10" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="10" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="10" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="10" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="10" data-answer="E"></div></div>
-                        </div>
-                    </div>
+                    <div class="question-row"><div class="question-number">01.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="1" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="1" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="1" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="1" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="1" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">02.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="2" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="2" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="2" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="2" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="2" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">03.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="3" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="3" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="3" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="3" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="3" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">04.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="4" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="4" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="4" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="4" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="4" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">05.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="5" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="5" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="5" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="5" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="5" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">06.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="6" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="6" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="6" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="6" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="6" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">07.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="7" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="7" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="7" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="7" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="7" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">08.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="8" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="8" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="8" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="8" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="8" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">09.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="9" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="9" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="9" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="9" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="9" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">10.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="10" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="10" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="10" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="10" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="10" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">11.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="11" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="11" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="11" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="11" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="11" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">12.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="12" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="12" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="12" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="12" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="12" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">13.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="13" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="13" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="13" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="13" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="13" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">14.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="14" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="14" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="14" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="14" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="14" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">15.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="15" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="15" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="15" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="15" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="15" data-answer="E"></div></div>
+                    </div></div>
                 </div>
 
-                <!-- Questões 11-20 (Coluna Direita) -->
                 <div>
-                    <div class="question-row">
-                        <div class="question-number">11.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="11" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="11" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="11" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="11" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="11" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">12.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="12" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="12" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="12" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="12" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="12" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">13.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="13" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="13" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="13" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="13" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="13" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">14.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="14" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="14" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="14" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="14" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="14" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">15.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="15" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="15" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="15" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="15" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="15" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">16.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="16" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="16" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="16" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="16" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="16" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">17.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="17" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="17" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="17" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="17" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="17" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">18.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="18" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="18" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="18" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="18" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="18" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">19.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="19" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="19" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="19" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="19" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="19" data-answer="E"></div></div>
-                        </div>
-                    </div>
-                    <div class="question-row">
-                        <div class="question-number">20.</div>
-                        <div class="options">
-                            <div class="option"><div class="option-label">A</div><div class="bubble" data-question="20" data-answer="A"></div></div>
-                            <div class="option"><div class="option-label">B</div><div class="bubble" data-question="20" data-answer="B"></div></div>
-                            <div class="option"><div class="option-label">C</div><div class="bubble" data-question="20" data-answer="C"></div></div>
-                            <div class="option"><div class="option-label">D</div><div class="bubble" data-question="20" data-answer="D"></div></div>
-                            <div class="option"><div class="option-label">E</div><div class="bubble" data-question="20" data-answer="E"></div></div>
-                        </div>
-                    </div>
+                     <div class="question-row"><div class="question-number">16.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="16" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="16" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="16" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="16" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="16" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">17.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="17" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="17" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="17" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="17" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="17" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">18.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="18" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="18" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="18" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="18" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="18" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">19.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="19" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="19" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="19" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="19" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="19" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">20.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="20" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="20" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="20" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="20" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="20" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">21.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="21" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="21" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="21" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="21" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="21" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">22.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="22" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="22" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="22" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="22" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="22" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">23.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="23" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="23" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="23" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="23" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="23" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">24.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="24" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="24" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="24" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="24" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="24" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">25.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="25" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="25" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="25" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="25" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="25" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">26.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="26" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="26" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="26" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="26" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="26" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">27.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="27" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="27" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="27" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="27" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="27" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">28.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="28" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="28" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="28" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="28" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="28" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">29.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="29" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="29" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="29" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="29" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="29" data-answer="E"></div></div>
+                    </div></div>
+
+                    <div class="question-row"><div class="question-number">30.</div><div class="options">
+                        <div class="option"><div class="option-label">A</div><div class="bubble" data-question="30" data-answer="A"></div></div>
+                        <div class="option"><div class="option-label">B</div><div class="bubble" data-question="30" data-answer="B"></div></div>
+                        <div class="option"><div class="option-label">C</div><div class="bubble" data-question="30" data-answer="C"></div></div>
+                        <div class="option"><div class="option-label">D</div><div class="bubble" data-question="30" data-answer="D"></div></div>
+                        <div class="option"><div class="option-label">E</div><div class="bubble" data-question="30" data-answer="E"></div></div>
+                    </div></div>
                 </div>
             </div>
         </div>
 
-        <!-- Rodapé -->
         <div class="footer">
             <div>2025 - Cartão Resposta</div>
             <div>Para uso temporário e testes em sala</div>
