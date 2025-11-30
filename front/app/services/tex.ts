@@ -80,11 +80,12 @@ export class LaTeXCompiler {
     let currentQuestion = '';
     let currentChoices: string[] = [];
     let isMultiple = false;
+    const questionRegex = /^(Q)\d+:/;
 
     for (let line of lines) {
       line = line.trim();
 
-      if (line.startsWith('Q:') || line.startsWith('QM:')) {
+      if (questionRegex.test(line)) {
         // Finaliza questao anterior se existir
         if (currentQuestion) {
           processed += this.buildQuestion(currentQuestion, currentChoices, isMultiple, questionId++);
@@ -92,7 +93,7 @@ export class LaTeXCompiler {
         }
 
         isMultiple = line.startsWith('QM:');
-        currentQuestion = line.substring(line.indexOf(':') + 1).trim();
+        currentQuestion = line.replace(/^(Q)\d+:\s*/, '').trim();
       } else if (line.match(/^[a-z]\)/)) {
         // Opcao de resposta
         const isCorrect = line.includes('*');
