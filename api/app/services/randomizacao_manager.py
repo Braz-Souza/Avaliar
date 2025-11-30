@@ -244,11 +244,16 @@ class RandomizacaoManagerService:
         """
         randomizacoes = self.db.execute(
             select(AlunoRandomizacao)
+            .join(AlunoRandomizacao.aluno)
             .options(
                 selectinload(AlunoRandomizacao.aluno),
-                selectinload(AlunoRandomizacao.turma_prova).selectinload(TurmaProva.prova).selectinload(Prova.questoes).selectinload(Questao.opcoes)
+                selectinload(AlunoRandomizacao.turma_prova)
+                    .selectinload(TurmaProva.prova)
+                    .selectinload(Prova.questoes)
+                    .selectinload(Questao.opcoes)
             )
             .where(AlunoRandomizacao.turma_prova_id == turma_prova_id)
+            .order_by(Aluno.nome)
         ).scalars().all()
 
         result = []
