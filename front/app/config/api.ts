@@ -25,7 +25,7 @@ function getApiConfig(): ApiConfig {
   
   return {
     baseURL,
-    timeout: 30000,
+    timeout: 1200000,
   };
 }
 

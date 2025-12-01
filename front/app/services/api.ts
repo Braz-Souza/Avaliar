@@ -213,7 +213,8 @@ export const randomizacaoApi = {
   // Download ZIP with all PDFs for a turma-prova
   downloadAllProvasZip: async (turmaProvaId: string): Promise<Blob> => {
     const response = await api.get(`/randomizacao/download-zip/${turmaProvaId}`, {
-      responseType: 'blob'
+      responseType: 'blob',
+      timeout: 1200000
     });
     return response.data;
   },

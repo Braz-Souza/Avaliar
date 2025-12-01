@@ -9,5 +9,6 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=settings.API_PORT,
-        reload=settings.DEBUG
+        reload=settings.DEBUG,
+        timeout_keep_alive=1200
     )
