@@ -481,7 +481,7 @@ class RandomizacaoManagerService:
             try:
                 latex_content = await self.get_aluno_prova_content(
                     aluno_id=aluno.id,
-                    prova_id=turma_prova.prova_id
+                    turma_prova_id=turma_prova_id
                 )
 
                 success, pdf_bytes, error = await latex_compiler.compile_to_bytes(
