@@ -400,7 +400,7 @@ class RandomizacaoManagerService:
 \textbf{MATRICULA} & \textbf{"""+ aluno.matricula + r"""} \\
 \hline
 
-\textbf{DATA} & \textbf{} \\
+\textbf{DATA} & \textbf{01/12/2025} \\
 \hline
 \end{tabular}
 
