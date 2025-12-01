@@ -12,14 +12,14 @@ export function parseLatexToQuestions(latex: string): Question[] {
   const lines = latex.split('\n');
   let currentQuestion: Question | null = null;
   let optionIndex = 0;
-  const questionRegex = /^(Q)\d+:/;
+  const questionRegex = /^(Q)\d*:/;
 
   for (const line of lines) {
     const trimmed = line.trim();
 
     if (questionRegex.test(trimmed)) {
       if (currentQuestion) questions.push(currentQuestion);
-      const questionText = trimmed.replace(/^(Q)\d+:\s*/, '').trim()
+      const questionText = trimmed.replace(/^(Q)\d*:\s*/, '').trim()
       currentQuestion = {
         id: Date.now().toString() + Math.random(),
         text: questionText,

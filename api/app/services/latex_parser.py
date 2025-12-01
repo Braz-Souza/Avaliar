@@ -31,7 +31,7 @@ class LaTeXParserService:
         current_questao = None
         questao_order = 0
         opcao_order = 0
-        padrao_questao = re.compile(r'Q\d+:')
+        padrao_questao = re.compile(r'Q\d*:')
 
         for line in lines:
             trimmed = line.strip()
@@ -43,7 +43,7 @@ class LaTeXParserService:
                 questao_order += 1
                 current_questao = {
                     "order": questao_order,
-                    "text": re.sub(r'^Q\d+:\s*', '', trimmed).strip(),
+                    "text": re.sub(r'^Q\d*:\s*', '', trimmed).strip(),
                     "opcoes": []
                 }
                 opcao_order = 0

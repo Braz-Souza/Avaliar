@@ -6,14 +6,14 @@ import { useState, useEffect } from 'react';
 import type { Question, EditMode } from '../types/question';
 import { parseLatexToQuestions, questionsToLatex } from '../utils/latex-parser';
 
-const INITIAL_LATEX = `Q: Qual é a capital do Brasil?
+const INITIAL_LATEX = `Q1: Qual é a capital do Brasil?
 a) São Paulo
 b) Brasília *
 c) Rio de Janeiro
 d) Belo Horizonte
 
-QM: Quais das seguintes são linguagens de programação?
-a) JavaScript *
+Q2: Quais das seguintes são linguagens de programação?
+a) Markup
 b) HTML
 c) Python *
 d) CSS`;

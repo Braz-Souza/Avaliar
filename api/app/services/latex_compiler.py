@@ -310,7 +310,7 @@ class LaTeXCompilerService:
         if not questions:
             # Tentar encontrar questões pelo padrão: \textbf{N.} onde N é o número da questão
             # seguido de \begin{enumerate}...\end{enumerate}
-            question_number_pattern = r'\\textbf\{(\d+)\.\}(.*?)\\begin\{enumerate\}(.*?)\\end\{enumerate\}'
+            question_number_pattern = r'\\textbf\{(\d*)\.\}(.*?)\\begin\{enumerate\}(.*?)\\end\{enumerate\}'
             question_matches = re.finditer(question_number_pattern, latex_content, re.DOTALL)
 
             for match in question_matches:
