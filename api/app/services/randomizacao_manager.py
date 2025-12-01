@@ -342,14 +342,14 @@ class RandomizacaoManagerService:
     async def get_aluno_prova_content(
         self,
         aluno_id: UUID,
-        prova_id: UUID
+        turma_prova_id: UUID
     ) -> str:
         """
         Retorna o conteúdo LaTeX da prova personalizada de um aluno
 
         Args:
             aluno_id: ID do aluno
-            prova_id: ID da prova
+            turma_prova_id: ID da prova
 
         Returns:
             String com o conteúdo LaTeX da prova personalizada
@@ -366,15 +366,15 @@ class RandomizacaoManagerService:
                 .selectinload(Prova.questoes)
                 .selectinload(Questao.opcoes)
             )
-            .join(TurmaProva)
+            .join(AlunoRandomizacao.turma_prova)
             .where(
                 AlunoRandomizacao.aluno_id == aluno_id,
-                TurmaProva.prova_id == prova_id
+                AlunoRandomizacao.turma_prova_id == turma_prova_id
             )
         ).scalar_one_or_none()
 
         if not randomizacao:
-            raise ValueError(f"Randomização não encontrada para aluno {aluno_id} e prova {prova_id}")
+            raise ValueError(f"Randomização não encontrada para aluno {aluno_id} e turma_prova {turma_prova_id}")
 
         prova = randomizacao.turma_prova.prova
         aluno = randomizacao.aluno

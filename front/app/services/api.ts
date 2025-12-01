@@ -203,8 +203,8 @@ export const randomizacaoApi = {
   },
 
   // Download personalized PDF for aluno (returns blob)
-  downloadAlunoProvaPdf: async (alunoId: string, provaId: string): Promise<Blob> => {
-    const response = await api.get(`/randomizacao/aluno/${alunoId}/prova/${provaId}/content`, {
+  downloadAlunoProvaPdf: async (turmaProvaId: string, alunoId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/${turmaProvaId}/aluno/${alunoId}/content`, {
       responseType: 'blob'
     });
     return response.data;

@@ -188,10 +188,10 @@ async def get_aluno_randomizacao(
         raise HTTPException(status_code=500, detail=f"Erro ao obter randomização: {str(e)}")
 
 
-@router.get("/aluno/{aluno_id}/prova/{prova_id}/content")
+@router.get("/{turma_prova_id}/aluno/{aluno_id}/content")
 async def get_aluno_prova_content(
     aluno_id: UUID,
-    prova_id: UUID,
+    turma_prova_id: UUID,
     user_id: CurrentUser,
     manager: RandomizacaoManagerService = Depends(get_randomizacao_manager),
     latex_compiler: LaTeXCompilerService = Depends(get_latex_compiler)
@@ -201,7 +201,7 @@ async def get_aluno_prova_content(
 
     Args:
         aluno_id: ID do aluno
-        prova_id: ID da prova
+        turma_prova_id: ID da prova
         user_id: ID do usuário autenticado (injetado pelo middleware)
         manager: Serviço de randomização (injetado)
         latex_compiler: Serviço de compilação LaTeX (injetado)
@@ -214,12 +214,12 @@ async def get_aluno_prova_content(
     """
     try:
         # Obter conteúdo personalizado
-        content = await manager.get_aluno_prova_content(aluno_id, prova_id)
+        content = await manager.get_aluno_prova_content(aluno_id, turma_prova_id)
 
         # Compilar para PDF
         success, pdf_bytes, error = await latex_compiler.compile_to_bytes(
             latex_content=content,
-            filename=f"prova_{aluno_id}_{prova_id}"
+            filename=f"prova_{aluno_id}_{turma_prova_id}"
         )
 
         if not success:

@@ -102,13 +102,13 @@ export function AlunosProvasPage() {
   };
 
   const handleGeneratePdf = async (alunoId: string, alunoName: string) => {
-    if (!provaId) return;
+    if (!turmaProvaId) return;
 
     try {
       setGeneratingPdf(prev => ({ ...prev, [alunoId]: true }));
 
       // Download PDF blob from the new endpoint
-      const pdfBlob = await randomizacaoApi.downloadAlunoProvaPdf(alunoId, provaId);
+      const pdfBlob = await randomizacaoApi.downloadAlunoProvaPdf(turmaProvaId, alunoId);
 
       // Create download link from blob
       const url = window.URL.createObjectURL(pdfBlob);
