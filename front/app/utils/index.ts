@@ -3,4 +3,4 @@
  */
 
 export { parseLatexToQuestions, questionsToLatex } from './latex-parser';
-export { formatDate } from './date-formatter';
+export { formatDate, formatLocalDate } from './date-formatter';

@@ -6,8 +6,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
 import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData, type ImageCorrectionResponse } from "../../services/api";
-import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload, CheckCircle, XCircle, Calendar } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatLocalDate } from "../../utils";
 
 export function AlunosProvasPage() {
   const { turmaId, provaId } = useParams<{ turmaId: string; provaId: string }>();
@@ -17,6 +18,7 @@ export function AlunosProvasPage() {
   const [correcoes, setCorrecoes] = useState<{ [key: string]: ImageCorrectionResponse }>({});
   const [prova, setProva] = useState<ProvaInfo | null>(null);
   const [turmaProvaId, setTurmaProvaId] = useState<string | null>(null);
+  const [dataProva, setDataProva] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<{ [key: string]: boolean }>({});
   const [downloadingZip, setDownloadingZip] = useState(false);
@@ -25,6 +27,9 @@ export function AlunosProvasPage() {
   const [uploadingImage, setUploadingImage] = useState<{ [key: string]: boolean }>({});
   const [dragOverAluno, setDragOverAluno] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [updatingDate, setUpdatingDate] = useState(false);
 
   useEffect(() => {
     if (turmaId && provaId) {
@@ -63,6 +68,11 @@ export function AlunosProvasPage() {
 
       const turmaProvaId = turmaProvas[0].id;
       setTurmaProvaId(turmaProvaId);
+
+      // Armazenar data da prova se existir
+      if (turmaProvas[0].data) {
+        setDataProva(turmaProvas[0].data);
+      }
 
       // Load alunos randomizacoes
       const randomizacoes = await randomizacaoApi.getAlunosRandomizacoes(turmaProvaId);
@@ -351,6 +361,34 @@ export function AlunosProvasPage() {
     ).join(', ');
   };
 
+  const handleOpenDateModal = () => {
+    // Preencher com a data atual se existir, senão com a data de hoje
+    if (dataProva) {
+      setSelectedDate(dataProva);
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      setSelectedDate(today);
+    }
+    setShowDateModal(true);
+  };
+
+  const handleUpdateDate = async () => {
+    if (!turmaId || !provaId || !selectedDate) return;
+
+    try {
+      setUpdatingDate(true);
+      await randomizacaoApi.updateDataProva(turmaId, provaId, selectedDate);
+      setDataProva(selectedDate);
+      setShowDateModal(false);
+      alert('✅ Data da prova atualizada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao atualizar data:', err);
+      alert('❌ Erro ao atualizar data da prova');
+    } finally {
+      setUpdatingDate(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="flex flex-col min-h-screen bg-base-200">
@@ -382,60 +420,88 @@ export function AlunosProvasPage() {
     <main className="flex flex-col min-h-screen bg-base-200">
       <header className="w-full bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link to="/turmas" className="text-gray-600 hover:text-gray-900">
-                <ArrowLeft className="w-4 h-4 inline mr-2" />
-                Voltar para Turmas
-              </Link>
-              <div>
-                <h1 className="text-xl font-semibold">Provas dos Alunos</h1>
-                <p className="text-sm text-gray-600">
-                  {prova?.name} - {alunos.length} aluno(s)
-                </p>
-              </div>
+          {/* Primeira linha - Navegação e usuário */}
+          <div className="flex justify-between items-center h-12 border-b border-gray-100">
+            <Link to="/turmas" className="text-gray-600 hover:text-gray-900 flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Turmas
+            </Link>
+            <div className="text-gray-700">
+              <span className="text-sm font-medium">
+                {user?.name || 'Usuário'}
+              </span>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                className={`btn btn-secondary gap-2 ${downloadingCartao ? 'loading' : ''}`}
-                onClick={handleDownloadCartaoResposta}
-                disabled={downloadingCartao}
-                title="Baixar cartão resposta em PDF"
-              >
-                {downloadingCartao ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    Cartão Resposta
-                  </>
-                )}
-              </button>
-              <button
-                className={`btn btn-primary gap-2 ${downloadingZip ? 'loading' : ''}`}
-                onClick={handleDownloadAllZip}
-                disabled={downloadingZip || alunos.length === 0}
-                title="Baixar todas as provas em um arquivo ZIP"
-              >
-                {downloadingZip ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Gerando ZIP...
-                  </>
-                ) : (
-                  <>
-                    <PackageOpen className="w-4 h-4" />
-                    Baixar Todas (ZIP)
-                  </>
-                )}
-              </button>
-              <div className="text-gray-700">
-                <span className="text-sm font-medium">
-                  {user?.name || 'Usuário'}
-                </span>
+          </div>
+
+          {/* Segunda linha - Informações da prova */}
+          <div className="py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-800">{prova?.name}</h1>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-sm text-gray-600">
+                      {alunos.length} aluno(s)
+                    </span>
+                    {dataProva && (
+                      <>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-sm text-primary font-medium flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatLocalDate(dataProva)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="btn btn-sm btn-ghost gap-2"
+                  onClick={handleOpenDateModal}
+                  title="Alterar data da prova"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Alterar Data
+                </button>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="flex items-center gap-2">
+                <button
+                  className={`btn btn-sm btn-secondary gap-2 ${downloadingCartao ? 'loading' : ''}`}
+                  onClick={handleDownloadCartaoResposta}
+                  disabled={downloadingCartao}
+                  title="Baixar cartão resposta em PDF"
+                >
+                  {downloadingCartao ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Cartão Resposta
+                    </>
+                  )}
+                </button>
+                <button
+                  className={`btn btn-sm btn-primary gap-2 ${downloadingZip ? 'loading' : ''}`}
+                  onClick={handleDownloadAllZip}
+                  disabled={downloadingZip || alunos.length === 0}
+                  title="Baixar todas as provas em um arquivo ZIP"
+                >
+                  {downloadingZip ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Gerando ZIP...
+                    </>
+                  ) : (
+                    <>
+                      <PackageOpen className="w-4 h-4" />
+                      Baixar Todas (ZIP)
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -604,6 +670,45 @@ export function AlunosProvasPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de alteração de data */}
+      {showDateModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Alterar Data da Prova</h3>
+            
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Selecione a nova data:</span>
+              </label>
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowDateModal(false)}
+                disabled={updatingDate}
+              >
+                Cancelar
+              </button>
+              <button
+                className={`btn btn-primary ${updatingDate ? 'loading' : ''}`}
+                onClick={handleUpdateDate}
+                disabled={updatingDate || !selectedDate}
+              >
+                {updatingDate ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => !updatingDate && setShowDateModal(false)}></div>
+        </div>
+      )}
     </main>
   );
 }

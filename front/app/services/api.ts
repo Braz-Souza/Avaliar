@@ -65,6 +65,7 @@ export interface TurmaProvaInfo {
   turma_id: string;
   prova_id: string;
   created_at: string;
+  data?: string;
 }
 
 export interface AlunoRandomizacaoInfo {
@@ -224,6 +225,18 @@ export const randomizacaoApi = {
     const response = await api.get(`/randomizacao/gabarito/${alunoId}/${provaId}`, {
       responseType: 'blob'
     });
+    return response.data;
+  },
+
+  // Update data da prova
+  updateDataProva: async (turmaId: string, provaId: string, data: string): Promise<{ message: string; data: string }> => {
+    const response = await api.put(`/randomizacao/turma/${turmaId}/prova/${provaId}/data`, { data });
+    return response.data;
+  },
+
+  // Get data da prova
+  getDataProva: async (turmaId: string, provaId: string): Promise<{ data: string | null }> => {
+    const response = await api.get(`/randomizacao/turma/${turmaId}/prova/${provaId}/data`);
     return response.data;
   },
 };

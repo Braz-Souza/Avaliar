@@ -7,9 +7,11 @@ TODAS AS ROTAS REQUEREM AUTENTICAÇÃO (via middleware global)
 import logging
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,11 @@ from app.core.database import get_db
 from app.core.dependencies import CurrentUser
 
 router = APIRouter(prefix="/randomizacao", tags=["Randomização Management"])
+
+
+class UpdateDataProvaRequest(BaseModel):
+    """Request model para atualização de data da prova"""
+    data: date
 
 
 def get_randomizacao_manager(db: Session = Depends(get_db)) -> RandomizacaoManagerService:
@@ -452,3 +459,65 @@ async def download_gabarito_aluno(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao gerar gabarito: {str(e)}")
+
+
+@router.put("/turma/{turma_id}/prova/{prova_id}/data")
+async def update_data_prova(
+    turma_id: UUID,
+    prova_id: UUID,
+    request: UpdateDataProvaRequest,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager)
+):
+    """
+    Atualiza a data de uma prova para uma turma específica - REQUER AUTENTICAÇÃO
+
+    Args:
+        turma_id: ID da turma
+        prova_id: ID da prova
+        request: Objeto com a nova data
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+
+    Returns:
+        Mensagem de sucesso
+
+    Raises:
+        HTTPException: Se o vínculo não existir
+    """
+    try:
+        await manager.update_data_prova(turma_id, prova_id, request.data)
+        return {"message": "Data da prova atualizada com sucesso", "data": request.data}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar data da prova: {str(e)}")
+
+
+@router.get("/turma/{turma_id}/prova/{prova_id}/data")
+async def get_data_prova(
+    turma_id: UUID,
+    prova_id: UUID,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager)
+):
+    """
+    Obtém a data de uma prova para uma turma específica - REQUER AUTENTICAÇÃO
+
+    Args:
+        turma_id: ID da turma
+        prova_id: ID da prova
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+
+    Returns:
+        Data da prova ou null se não existir
+
+    Raises:
+        HTTPException: Em caso de erro
+    """
+    try:
+        data = await manager.get_data_prova(turma_id, prova_id)
+        return {"data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao obter data da prova: {str(e)}")

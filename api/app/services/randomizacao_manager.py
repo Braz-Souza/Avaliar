@@ -5,6 +5,7 @@ Service para gerenciamento de randomização de provas para turmas
 import random
 import io
 import zipfile
+from datetime import date
 from typing import List, Optional, Tuple
 from uuid import UUID
 from sqlalchemy.orm import Session, selectinload
@@ -18,6 +19,7 @@ from app.db.models.randomizacao import (
     TurmaProva, TurmaProvaCreate, TurmaProvaRead,
     AlunoRandomizacao, AlunoRandomizacaoCreate, AlunoRandomizacaoRead
 )
+from app.db.models.data_prova import DataProva
 from app.utils.logger import logger
 
 
@@ -91,6 +93,15 @@ class RandomizacaoManagerService:
         self.db.add(turma_prova)
         self.db.flush()  # Obter ID sem commit
 
+        # Criar registro de data da prova com a data atual
+        data_prova = DataProva(
+            turma_id=turma_id,
+            prova_id=prova_id,
+            data=date.today()
+        )
+        self.db.add(data_prova)
+        self.db.flush()
+
         # Carregar alunos da turma
         turma_with_alunos = self.db.execute(
             select(Turma)
@@ -110,6 +121,7 @@ class RandomizacaoManagerService:
 
         self.db.commit()
         self.db.refresh(turma_prova)
+        self.db.refresh(data_prova)
 
         logger.info(f"Prova {prova_id} vinculada à turma {turma_id} com randomização para {len(turma_with_alunos.alunos)} alunos")
 
@@ -117,7 +129,8 @@ class RandomizacaoManagerService:
             id=turma_prova.id,
             turma_id=turma_prova.turma_id,
             prova_id=turma_prova.prova_id,
-            created_at=turma_prova.created_at
+            created_at=turma_prova.created_at,
+            data=data_prova.data
         )
 
     async def _create_randomizacoes_for_alunos(
@@ -195,15 +208,27 @@ class RandomizacaoManagerService:
         result = self.db.execute(query)
         turma_provas = result.scalars().all()
 
-        return [
-            TurmaProvaRead(
-                id=tp.id,
-                turma_id=tp.turma_id,
-                prova_id=tp.prova_id,
-                created_at=tp.created_at
+        # Para cada turma_prova, buscar a data se existir
+        turma_provas_read = []
+        for tp in turma_provas:
+            data_prova = self.db.execute(
+                select(DataProva).where(
+                    DataProva.turma_id == tp.turma_id,
+                    DataProva.prova_id == tp.prova_id
+                )
+            ).scalar_one_or_none()
+            
+            turma_provas_read.append(
+                TurmaProvaRead(
+                    id=tp.id,
+                    turma_id=tp.turma_id,
+                    prova_id=tp.prova_id,
+                    created_at=tp.created_at,
+                    data=data_prova.data if data_prova else None
+                )
             )
-            for tp in turma_provas
-        ]
+
+        return turma_provas_read
 
     async def get_turma_prova(self, turma_prova_id: UUID) -> Optional[TurmaProvaRead]:
         """
@@ -222,11 +247,20 @@ class RandomizacaoManagerService:
         if not turma_prova:
             return None
 
+        # Buscar data da prova se existir
+        data_prova = self.db.execute(
+            select(DataProva).where(
+                DataProva.turma_id == turma_prova.turma_id,
+                DataProva.prova_id == turma_prova.prova_id
+            )
+        ).scalar_one_or_none()
+
         return TurmaProvaRead(
             id=turma_prova.id,
             turma_id=turma_prova.turma_id,
             prova_id=turma_prova.prova_id,
-            created_at=turma_prova.created_at
+            created_at=turma_prova.created_at,
+            data=data_prova.data if data_prova else None
         )
 
     async def get_aluno_randomizacoes(
@@ -332,6 +366,17 @@ class RandomizacaoManagerService:
         if not turma_prova:
             return False
 
+        # Excluir registro de data da prova
+        data_prova = self.db.execute(
+            select(DataProva).where(
+                DataProva.turma_id == turma_id,
+                DataProva.prova_id == prova_id
+            )
+        ).scalar_one_or_none()
+        
+        if data_prova:
+            self.db.delete(data_prova)
+
         # Excluir randomizações em cascata
         self.db.delete(turma_prova)
         self.db.commit()
@@ -380,6 +425,17 @@ class RandomizacaoManagerService:
         aluno = randomizacao.aluno
         questoes_originais = sorted(prova.questoes, key=lambda q: q.order)
 
+        # Buscar data da prova
+        data_prova = self.db.execute(
+            select(DataProva).where(
+                DataProva.turma_id == randomizacao.turma_prova.turma_id,
+                DataProva.prova_id == randomizacao.turma_prova.prova_id
+            )
+        ).scalar_one_or_none()
+        
+        # Formatar data no formato brasileiro (dd/mm/yyyy)
+        data_formatada = data_prova.data.strftime('%d/%m/%Y') if data_prova else date.today().strftime('%d/%m/%Y')
+
         latex_content = r"""\documentclass[a4paper]{article}
 
 \usepackage[utf8]{inputenc}
@@ -400,7 +456,7 @@ class RandomizacaoManagerService:
 \textbf{MATRICULA} & \textbf{"""+ aluno.matricula + r"""} \\
 \hline
 
-\textbf{DATA} & \textbf{01/12/2025} \\
+\textbf{DATA} & \textbf{"""+ data_formatada + r"""} \\
 \hline
 \end{tabular}
 
@@ -620,3 +676,83 @@ class RandomizacaoManagerService:
         logger.info(f"Respostas corretas obtidas para aluno {aluno_id} e prova {prova_id}: {len(correct_answers)} questões")
 
         return correct_answers
+
+    async def update_data_prova(
+        self,
+        turma_id: UUID,
+        prova_id: UUID,
+        nova_data: date
+    ) -> bool:
+        """
+        Atualiza a data de uma prova para uma turma específica
+
+        Args:
+            turma_id: ID da turma
+            prova_id: ID da prova
+            nova_data: Nova data da prova
+
+        Returns:
+            True se atualizado com sucesso
+
+        Raises:
+            ValueError: Se o vínculo turma-prova não existir
+        """
+        # Verificar se existe vínculo turma-prova
+        turma_prova = self.db.execute(
+            select(TurmaProva).where(
+                TurmaProva.turma_id == turma_id,
+                TurmaProva.prova_id == prova_id
+            )
+        ).scalar_one_or_none()
+
+        if not turma_prova:
+            raise ValueError("Vínculo entre turma e prova não encontrado")
+
+        # Buscar ou criar registro de data_prova
+        data_prova = self.db.execute(
+            select(DataProva).where(
+                DataProva.turma_id == turma_id,
+                DataProva.prova_id == prova_id
+            )
+        ).scalar_one_or_none()
+
+        if data_prova:
+            # Atualizar data existente
+            data_prova.data = nova_data
+        else:
+            # Criar novo registro de data
+            data_prova = DataProva(
+                turma_id=turma_id,
+                prova_id=prova_id,
+                data=nova_data
+            )
+            self.db.add(data_prova)
+
+        self.db.commit()
+        logger.info(f"Data da prova {prova_id} na turma {turma_id} atualizada para {nova_data}")
+
+        return True
+
+    async def get_data_prova(
+        self,
+        turma_id: UUID,
+        prova_id: UUID
+    ) -> Optional[date]:
+        """
+        Obtém a data de uma prova para uma turma específica
+
+        Args:
+            turma_id: ID da turma
+            prova_id: ID da prova
+
+        Returns:
+            Data da prova ou None se não existir
+        """
+        data_prova = self.db.execute(
+            select(DataProva).where(
+                DataProva.turma_id == turma_id,
+                DataProva.prova_id == prova_id
+            )
+        ).scalar_one_or_none()
+
+        return data_prova.data if data_prova else None
