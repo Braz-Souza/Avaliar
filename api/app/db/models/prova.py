@@ -37,6 +37,10 @@ class ProvaBase(SQLModel):
         foreign_key="users.id",
         description="ID of user who created this prova"
     )
+    deleted: bool = Field(
+        default=False,
+        description="Soft delete flag - if True, prova is hidden from queries"
+    )
 
 
 class Prova(ProvaBase, table=True):

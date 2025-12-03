@@ -68,6 +68,7 @@ class RandomizacaoManagerService:
             select(Prova)
             .options(selectinload(Prova.questoes).selectinload(Questao.opcoes))
             .where(Prova.id == prova_id)
+            .where(Prova.deleted == False)
         ).scalar_one_or_none()
 
         if not prova:

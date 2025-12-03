@@ -92,7 +92,7 @@ class ProvaManagerService:
         Returns:
             Lista de ProvaRead ordenadas por data de modificação
         """
-        query = select(Prova)
+        query = select(Prova).where(Prova.deleted == False)
 
         if created_by:
             query = query.where(Prova.created_by == created_by)
@@ -145,7 +145,7 @@ class ProvaManagerService:
         """
         prova = self.db.get(Prova, prova_id)
 
-        if not prova:
+        if not prova or prova.deleted:
             logger.warning(f"Prova not found for update: {prova_id}")
             raise HTTPException(status_code=404, detail="Prova not found")
 
@@ -211,7 +211,7 @@ class ProvaManagerService:
 
     async def delete_prova(self, prova_id: UUID) -> dict:
         """
-        Exclui uma prova do banco de dados
+        Marca uma prova como deletada (soft delete)
 
         Args:
             prova_id: ID da prova
@@ -224,14 +224,15 @@ class ProvaManagerService:
         """
         prova = self.db.get(Prova, prova_id)
 
-        if not prova:
+        if not prova or prova.deleted:
             logger.warning(f"Prova not found for deletion: {prova_id}")
             raise HTTPException(status_code=404, detail="Prova not found")
 
-        self.db.delete(prova)
+        prova.deleted = True
+        self.db.add(prova)
         self.db.commit()
 
-        logger.info(f"Prova deleted: {prova_id}")
+        logger.info(f"Prova marked as deleted: {prova_id}")
 
         return {"message": "Prova deleted successfully", "id": str(prova_id)}
 
@@ -245,7 +246,7 @@ class ProvaManagerService:
         Returns:
             Número total de provas
         """
-        query = select(func.count(Prova.id))
+        query = select(func.count(Prova.id)).where(Prova.deleted == False)
 
         if created_by:
             query = query.where(Prova.created_by == created_by)
@@ -267,7 +268,7 @@ class ProvaManagerService:
         """
         prova = self.db.get(Prova, prova_id)
 
-        if not prova:
+        if not prova or prova.deleted:
             logger.warning(f"Prova not found: {prova_id}")
             raise HTTPException(status_code=404, detail="Prova not found")
 

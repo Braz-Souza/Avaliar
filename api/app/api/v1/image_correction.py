@@ -111,7 +111,7 @@ async def upload_and_process_image(
         raise HTTPException(status_code=404, detail=f"Turma com ID {turma_id} não encontrada")
 
     prova = session.get(Prova, prova_uuid)
-    if not prova:
+    if not prova or prova.deleted:
         raise HTTPException(status_code=404, detail=f"Prova com ID {prova_id} não encontrada")
 
     # Buscar o usuário corretor pelo username
@@ -340,6 +340,10 @@ async def buscar_correcao(
     turma = session.get(Turma, correcao.turma_id)
     prova = session.get(Prova, correcao.prova_id)
     corretor = session.get(User, correcao.corrigido_por)
+
+    # Verificar se prova foi deletada
+    if prova and prova.deleted:
+        prova = None
 
     return CorrecaoReadWithDetails(
         id=correcao.id,
