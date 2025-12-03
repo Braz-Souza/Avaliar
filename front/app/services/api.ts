@@ -221,9 +221,26 @@ export const randomizacaoApi = {
   },
 
   // Download gabarito personalizado do aluno PDF
-  downloadGabaritoAluno: async (alunoId: string, provaId: string): Promise<Blob> => {
-    const response = await api.get(`/randomizacao/gabarito/${alunoId}/${provaId}`, {
+  downloadGabaritoAluno: async (turmaProvaId: string, alunoId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/${turmaProvaId}/gabarito/${alunoId}`, {
       responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  // Download cartão resposta personalizado do aluno PDF
+  downloadCartaoRespostaAluno: async (turmaProvaId: string, alunoId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/${turmaProvaId}/cartao-resposta/${alunoId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  // Download ZIP with all cartões resposta for a turma-prova
+  downloadAllCartoesRespostaZip: async (turmaProvaId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/download-cartoes-resposta-zip/${turmaProvaId}`, {
+      responseType: 'blob',
+      timeout: 1200000
     });
     return response.data;
   },

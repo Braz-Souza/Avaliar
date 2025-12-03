@@ -604,7 +604,7 @@ class RandomizacaoManagerService:
     async def get_correct_answers_for_aluno(
         self,
         aluno_id: UUID,
-        prova_id: UUID
+        turma_prova_id: UUID
     ) -> dict[int, str]:
         """
         Obtém as respostas corretas personalizadas para um aluno específico
@@ -633,12 +633,12 @@ class RandomizacaoManagerService:
             .join(TurmaProva)
             .where(
                 AlunoRandomizacao.aluno_id == aluno_id,
-                TurmaProva.prova_id == prova_id
+                TurmaProva.id == turma_prova_id
             )
         ).scalar_one_or_none()
 
         if not randomizacao_completa:
-            raise ValueError(f"Randomização não encontrada para aluno {aluno_id} e prova {prova_id}")
+            raise ValueError(f"Randomização não encontrada para aluno {aluno_id} e turma_prova_id prova {turma_prova_id}")
 
         prova = randomizacao_completa.turma_prova.prova
         questoes_originais = sorted(prova.questoes, key=lambda q: q.order)
@@ -674,7 +674,7 @@ class RandomizacaoManagerService:
                 letra_correta = chr(65 + posicao_randomizada)  # 65 é o código ASCII de 'A'
                 correct_answers[idx_personalizado + 1] = letra_correta
 
-        logger.info(f"Respostas corretas obtidas para aluno {aluno_id} e prova {prova_id}: {len(correct_answers)} questões")
+        logger.info(f"Respostas corretas obtidas para aluno {aluno_id} e prova {turma_prova_id}: {len(correct_answers)} questões")
 
         return correct_answers
 
@@ -757,3 +757,91 @@ class RandomizacaoManagerService:
         ).scalar_one_or_none()
 
         return data_prova.data if data_prova else None
+
+    async def create_zip_with_all_cartoes_resposta(
+        self,
+        turma_prova_id: UUID,
+        cartao_service
+    ) -> Tuple[bytes, str]:
+        """
+        Cria um arquivo ZIP contendo todos os cartões resposta dos alunos
+
+        Args:
+            turma_prova_id: ID da ligação turma-prova
+            cartao_service: Instância do CartaoRespostaService
+
+        Returns:
+            Tuple com bytes do arquivo ZIP e nome sugerido para o arquivo
+
+        Raises:
+            ValueError: Se turma_prova_id não existir ou não houver PDFs gerados
+        """
+        # Buscar turma_prova com relacionamentos
+        turma_prova = self.db.execute(
+            select(TurmaProva)
+            .options(
+                selectinload(TurmaProva.prova),
+                selectinload(TurmaProva.turma),
+                selectinload(TurmaProva.randomizacoes).selectinload(AlunoRandomizacao.aluno)
+            )
+            .where(TurmaProva.id == turma_prova_id)
+        ).scalar_one_or_none()
+
+        if not turma_prova:
+            raise ValueError(f"TurmaProva com ID {turma_prova_id} não encontrada")
+
+        if not turma_prova.randomizacoes:
+            raise ValueError("Nenhuma randomização encontrada para esta turma-prova")
+
+        # Buscar a data da prova
+        exam_date = await self.get_data_prova(turma_prova.turma_id, turma_prova.prova_id)
+        exam_date_str = exam_date.strftime("%d/%m/%Y") if exam_date else None
+
+        prova_nome = turma_prova.prova.name
+        alunos_pdfs = []
+
+        for randomizacao in turma_prova.randomizacoes:
+            aluno = randomizacao.aluno
+
+            try:
+                success, message, pdf_path = cartao_service.generate_pdf(
+                    filename=f"cartao_resposta_{aluno.matricula}",
+                    student_name=aluno.nome,
+                    student_matricula=aluno.matricula,
+                    exam_date=exam_date_str,
+                    turma_prova_id=turma_prova_id
+                )
+
+                if success and pdf_path:
+                    pdf_bytes = cartao_service.get_pdf_blob(pdf_path)
+                    if pdf_bytes:
+                        alunos_pdfs.append({
+                            'aluno_nome': aluno.nome,
+                            'aluno_matricula': aluno.matricula,
+                            'pdf_bytes': pdf_bytes
+                        })
+                    else:
+                        logger.error(f"Erro ao ler PDF do cartão resposta para aluno {aluno.nome} ({aluno.matricula})")
+                else:
+                    logger.error(f"Erro ao gerar cartão resposta para aluno {aluno.nome} ({aluno.matricula}): {message}")
+            except Exception as e:
+                logger.error(f"Erro ao gerar cartão resposta para aluno {aluno.nome} ({aluno.matricula}): {str(e)}")
+                continue
+
+        if not alunos_pdfs:
+            raise ValueError("Nenhum cartão resposta foi gerado com sucesso")
+
+        zip_buffer = io.BytesIO()
+
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for aluno_data in alunos_pdfs:
+                filename = f"{aluno_data['aluno_matricula']}_{aluno_data['aluno_nome'].replace(' ', '_')}_cartao_resposta.pdf"
+                zip_file.writestr(filename, aluno_data['pdf_bytes'])
+
+        zip_bytes = zip_buffer.getvalue()
+
+        zip_filename = f"cartoes_resposta_{prova_nome.replace(' ', '_')}.zip"
+
+        logger.info(f"ZIP de cartões resposta criado com {len(alunos_pdfs)} PDFs para turma_prova {turma_prova_id}")
+
+        return zip_bytes, zip_filename

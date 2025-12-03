@@ -22,8 +22,10 @@ export function AlunosProvasPage() {
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<{ [key: string]: boolean }>({});
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [downloadingCartoesZip, setDownloadingCartoesZip] = useState(false);
   const [downloadingCartao, setDownloadingCartao] = useState(false);
   const [downloadingGabarito, setDownloadingGabarito] = useState<{ [key: string]: boolean }>({});
+  const [downloadingCartaoResposta, setDownloadingCartaoResposta] = useState<{ [key: string]: boolean }>({});
   const [uploadingImage, setUploadingImage] = useState<{ [key: string]: boolean }>({});
   const [dragOverAluno, setDragOverAluno] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -166,6 +168,32 @@ export function AlunosProvasPage() {
     }
   };
 
+  const handleDownloadAllCartoesRespostaZip = async () => {
+    if (!turmaProvaId) return;
+
+    try {
+      setDownloadingCartoesZip(true);
+
+      const zipBlob = await randomizacaoApi.downloadAllCartoesRespostaZip(turmaProvaId);
+
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cartoes_resposta_${prova?.name?.replace(/\s+/g, '_')}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error('Erro ao baixar ZIP de cartões resposta:', err);
+      alert('Erro ao baixar arquivo ZIP com todos os cartões resposta');
+    } finally {
+      setDownloadingCartoesZip(false);
+    }
+  };
+
   const handleDownloadCartaoResposta = async () => {
     try {
       setDownloadingCartao(true);
@@ -222,12 +250,12 @@ export function AlunosProvasPage() {
   };
 
   const handleDownloadGabarito = async (alunoId: string, alunoName: string) => {
-    if (!provaId) return;
+    if (!turmaProvaId) return;
 
     try {
       setDownloadingGabarito(prev => ({ ...prev, [alunoId]: true }));
 
-      const pdfBlob = await randomizacaoApi.downloadGabaritoAluno(alunoId, provaId);
+      const pdfBlob = await randomizacaoApi.downloadGabaritoAluno(turmaProvaId, alunoId);
 
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -244,6 +272,32 @@ export function AlunosProvasPage() {
       alert('Erro ao baixar gabarito do aluno');
     } finally {
       setDownloadingGabarito(prev => ({ ...prev, [alunoId]: false }));
+    }
+  };
+
+  const handleDownloadCartaoRespostaAluno = async (alunoId: string, alunoName: string) => {
+    if (!turmaProvaId) return;
+
+    try {
+      setDownloadingCartaoResposta(prev => ({ ...prev, [alunoId]: true }));
+
+      const pdfBlob = await randomizacaoApi.downloadCartaoRespostaAluno(turmaProvaId, alunoId);
+
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cartao_resposta_${alunoName.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error('Erro ao baixar cartão resposta:', err);
+      alert('Erro ao baixar cartão resposta do aluno');
+    } finally {
+      setDownloadingCartaoResposta(prev => ({ ...prev, [alunoId]: false }));
     }
   };
 
@@ -485,6 +539,24 @@ export function AlunosProvasPage() {
                   )}
                 </button>
                 <button
+                  className={`btn btn-sm btn-accent gap-2 ${downloadingCartoesZip ? 'loading' : ''}`}
+                  onClick={handleDownloadAllCartoesRespostaZip}
+                  disabled={downloadingCartoesZip || alunos.length === 0}
+                  title="Baixar todos os cartões resposta em um arquivo ZIP"
+                >
+                  {downloadingCartoesZip ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Gerando ZIP...
+                    </>
+                  ) : (
+                    <>
+                      <PackageOpen className="w-4 h-4" />
+                      Cartões (ZIP)
+                    </>
+                  )}
+                </button>
+                <button
                   className={`btn btn-sm btn-primary gap-2 ${downloadingZip ? 'loading' : ''}`}
                   onClick={handleDownloadAllZip}
                   disabled={downloadingZip || alunos.length === 0}
@@ -498,7 +570,7 @@ export function AlunosProvasPage() {
                   ) : (
                     <>
                       <PackageOpen className="w-4 h-4" />
-                      Baixar Todas (ZIP)
+                      Provas (ZIP)
                     </>
                   )}
                 </button>
@@ -627,6 +699,21 @@ export function AlunosProvasPage() {
                               >
                                 <Eye className="w-4 h-4" />
                                 Detalhes
+                              </button>
+                              <button
+                                className={`btn btn-sm btn-secondary btn-outline gap-2 ${
+                                  downloadingCartaoResposta[alunoRand.aluno_id] ? 'loading' : ''
+                                }`}
+                                onClick={() => handleDownloadCartaoRespostaAluno(alunoRand.aluno_id, aluno?.nome || '')}
+                                disabled={downloadingCartaoResposta[alunoRand.aluno_id]}
+                                title="Baixar cartão resposta personalizado do aluno"
+                              >
+                                {downloadingCartaoResposta[alunoRand.aluno_id] ? (
+                                  <span className="loading loading-spinner loading-sm"></span>
+                                ) : (
+                                  <Download className="w-4 h-4" />
+                                )}
+                                Cartão Resposta
                               </button>
                               <button
                                 className={`btn btn-sm btn-warning btn-outline gap-2 ${
