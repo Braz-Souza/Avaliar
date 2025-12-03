@@ -224,6 +224,7 @@ sudo apt-get install -y \
         auto-multiple-choice
 sudo apt install -y build-essential
 sudo apt install python3.11-venv
+sudo apt install libzbar0 libzbar-dev
 
 mkdir -p ~/postgres-docker/{data,logs,config}
 cd ~/postgres-docker
