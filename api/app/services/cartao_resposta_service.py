@@ -5,12 +5,14 @@ Serviço para geração de cartão resposta em PDF a partir de template HTML
 from pathlib import Path
 from datetime import datetime
 import logging
-from typing import Optional
+from typing import Optional, Dict, Tuple
 import base64
 from io import BytesIO
 
 from weasyprint import HTML
 import qrcode
+from PIL import Image
+from pyzbar.pyzbar import decode
 
 from app.core.config import settings
 
@@ -191,3 +193,47 @@ class CartaoRespostaService:
         except Exception as e:
             logger.error(f"Erro ao ler PDF: {str(e)}", exc_info=True)
             return None
+
+    def read_qr_code(self, image_bytes: bytes) -> Tuple[bool, str, Optional[Dict[str, str]]]:
+        """
+        Lê QR code de uma imagem e extrai os dados
+
+        Args:
+            image_bytes: Bytes da imagem contendo o QR code
+
+        Returns:
+            Tupla (sucesso, mensagem, dados)
+            dados é um dict com 'matricula' e 'turma_prova_id'
+        """
+        try:
+            # Abre a imagem a partir dos bytes
+            img = Image.open(BytesIO(image_bytes))
+            
+            # Decodifica o QR code
+            decoded_objects = decode(img)
+            
+            if not decoded_objects:
+                return False, "Nenhum QR code encontrado na imagem", None
+            
+            # Pega o primeiro QR code encontrado
+            qr_data = decoded_objects[0].data.decode('utf-8')
+            
+            # O formato esperado é "matricula/turma_prova_id"
+            parts = qr_data.split('/')
+            
+            if len(parts) != 2:
+                return False, f"Formato de QR code inválido. Esperado 'matricula/turma_prova_id', recebido: {qr_data}", None
+            
+            data = {
+                "matricula": parts[0],
+                "turma_prova_id": parts[1]
+            }
+            
+            logger.info(f"QR code lido com sucesso: {data}")
+            return True, "QR code lido com sucesso", data
+            
+        except Exception as e:
+            error_msg = f"Erro ao ler QR code: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return False, error_msg, None
+

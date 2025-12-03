@@ -517,3 +517,30 @@ export const examCorrectorApi = {
     return response.data;
   },
 };
+
+// Cartão Resposta API
+export interface QRCodeData {
+  matricula: string;
+  turma_prova_id: string;
+}
+
+export interface ScanQRCodeResponse {
+  success: boolean;
+  message: string;
+  data: QRCodeData | null;
+}
+
+export const cartaoRespostaApi = {
+  // Scan QR code from answer sheet image
+  scanQRCode: async (imageFile: File): Promise<ScanQRCodeResponse> => {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+
+    const response = await api.post('/cartao-resposta/scan-qrcode', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+};

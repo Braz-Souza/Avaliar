@@ -5,8 +5,8 @@
 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData, type ImageCorrectionResponse } from "../../services/api";
-import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload, CheckCircle, XCircle, Calendar } from "lucide-react";
+import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, cartaoRespostaApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData, type ImageCorrectionResponse } from "../../services/api";
+import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload, CheckCircle, XCircle, Calendar, ScanLine } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { formatLocalDate } from "../../utils";
 
@@ -32,6 +32,8 @@ export function AlunosProvasPage() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [updatingDate, setUpdatingDate] = useState(false);
+  const [scanningQRCode, setScanningQRCode] = useState(false);
+  const [qrScanResult, setQrScanResult] = useState<{ matricula: string; turma_prova_id: string } | null>(null);
 
   useEffect(() => {
     if (turmaId && provaId) {
@@ -443,9 +445,74 @@ export function AlunosProvasPage() {
     }
   };
 
+  const handleScanAndUpload = async (file: File) => {
+    try {
+      setScanningQRCode(true);
+      setQrScanResult(null);
+
+      // Primeiro, faz o scan do QR code
+      const scanResult = await cartaoRespostaApi.scanQRCode(file);
+
+      if (!scanResult.success || !scanResult.data) {
+        alert('❌ ' + (scanResult.message || 'Erro ao ler QR code da imagem'));
+        return;
+      }
+
+      const { matricula, turma_prova_id } = scanResult.data;
+      setQrScanResult(scanResult.data);
+
+      // Verificar se o turma_prova_id corresponde ao atual
+      if (turma_prova_id !== turmaProvaId) {
+        alert(`⚠️ Atenção: O cartão resposta é de outra turma/prova!\n\nEsperado: ${turmaProvaId}\nEncontrado: ${turma_prova_id}`);
+        return;
+      }
+
+      // Buscar o aluno pela matrícula
+      const aluno = Object.values(alunosDetails).find(a => a.matricula === matricula);
+
+      if (!aluno) {
+        alert(`❌ Aluno com matrícula ${matricula} não encontrado nesta turma`);
+        return;
+      }
+
+      // Verificar se já existe correção
+      if (correcoes[aluno.id]) {
+        alert(`❌ O aluno ${aluno.nome} (${matricula}) já possui uma correção cadastrada!`);
+        return;
+      }
+
+      // Processar a imagem automaticamente
+      alert(`✅ QR Code lido com sucesso!\n\nAluno: ${aluno.nome}\nMatrícula: ${matricula}\n\nProcessando correção...`);
+      await handleImageUpload(aluno.id, file);
+
+    } catch (err: any) {
+      console.error('Erro ao processar scan:', err);
+      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao processar QR code';
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setScanningQRCode(false);
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar se é uma imagem
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione apenas arquivos de imagem');
+      return;
+    }
+
+    await handleScanAndUpload(file);
+    
+    // Limpar o input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = '';
+  };
+
   if (loading) {
     return (
-      <main className="flex flex-col min-h-screen bg-base-200">
+      <main className="flex flex-col min-h-screen bg-base-200">`
         <div className="flex-1 flex justify-center items-center">
           <span className="loading loading-spinner loading-lg"></span>
         </div>
@@ -520,6 +587,29 @@ export function AlunosProvasPage() {
 
               {/* Botões de ação */}
               <div className="flex items-center gap-2">
+                <label
+                  className={`btn btn-sm btn-success gap-2 ${scanningQRCode ? 'loading' : ''}`}
+                  title="Enviar cartão resposta com QR code - identificação automática do aluno"
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                    disabled={scanningQRCode}
+                  />
+                  {scanningQRCode ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <ScanLine className="w-4 h-4" />
+                      Scan QR Code
+                    </>
+                  )}
+                </label>
                 <button
                   className={`btn btn-sm btn-secondary gap-2 ${downloadingCartao ? 'loading' : ''}`}
                   onClick={handleDownloadCartaoResposta}
@@ -620,8 +710,11 @@ export function AlunosProvasPage() {
                   <div>
                     <div className="font-bold">Como enviar correções:</div>
                     <div className="text-sm">
-                      Arraste uma imagem do cartão resposta sobre a linha de um aluno para processá-la automaticamente.
-                      Alunos que já possuem correção não aceitarão novos envios.
+                      <strong>Opção 1 (Recomendado):</strong> Use o botão "Scan QR Code" no topo para enviar uma imagem do cartão resposta. 
+                      O sistema identificará automaticamente o aluno através do QR code.<br />
+                      <strong>Opção 2:</strong> Arraste uma imagem do cartão resposta sobre a linha de um aluno específico.
+                      <br />
+                      <em>Nota: Alunos que já possuem correção não aceitarão novos envios.</em>
                     </div>
                   </div>
                 </div>
