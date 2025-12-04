@@ -37,11 +37,37 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    const status = error.response?.status;
     console.error('❌ Response Error:', {
-      status: error.response?.status,
+      status,
       url: error.config?.url,
       data: error.response?.data,
     });
+
+    // Se for não autorizado, limpar credenciais e redirecionar para o login
+    if (status === 401) {
+      try {
+        // Remover token e usuário do localStorage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      } catch (e) {
+        // Ignorar erros ao acessar localStorage em ambientes não-browser
+      }
+
+      // Remover header Authorization padrão
+      try {
+        delete api.defaults.headers.common['Authorization'];
+      } catch (e) {
+        // ignore
+      }
+
+      // Redirecionar para a rota de login (apenas se não estiver já na página de login)
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        // Usar replace para não permitir voltar para a rota protegida
+        window.location.replace('/login');
+      }
+    }
+
     return Promise.reject(error);
   }
 );
