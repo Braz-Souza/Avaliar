@@ -201,7 +201,7 @@ export function Sidebar({
       {/* Footer Info */}
       <div className="p-6 border-t border-base-300">
         <div className="text-xs text-base-content/50 text-center">
-          <p>Avaliar v0.0</p>
+          <p>Avaliar v0.1</p>
           <p className="mt-1">Sistema de Provas</p>
         </div>
       </div>

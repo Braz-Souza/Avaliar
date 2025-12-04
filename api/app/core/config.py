@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # API SETTINGS
     # =============================================================================
     APP_NAME: str = "Avaliar API"
-    APP_VERSION: str = "0.0.0"
+    APP_VERSION: str = "0.1.0"
     API_PORT: int = 8000
     DEBUG: bool = True
     

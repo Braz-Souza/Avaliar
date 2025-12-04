@@ -1,6 +1,6 @@
 [project]
 name = "avaliar"
-version = "0.0.0"
+version = "0.1.0"
 description = "Sistema de Gestão de Provas"
 authors = [{ name = "Braz Souza", email = "mail@braz.one" }]
 requires-python = ">=3.12"
