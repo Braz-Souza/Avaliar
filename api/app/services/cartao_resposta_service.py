@@ -29,6 +29,7 @@ class CartaoRespostaService:
     def __init__(self):
         """Inicializa o serviço"""
         self.template_path = Path(__file__).parent.parent.parent / "static" / "templates" / "cartao_resposta.html"
+        self.omr_marker_path = Path(__file__).parent.parent.parent / "static" / "imgs" / "omr_marker.jpg"
         self.output_dir = settings.TEMP_PDF_DIR
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -74,6 +75,13 @@ class CartaoRespostaService:
             # Lê o HTML
             with open(self.template_path, 'r', encoding='utf-8') as f:
                 html_content = f.read()
+
+            # Adicionar marcador OMR
+            omr_marker_base64 = self._get_omr_marker_base64()
+            if omr_marker_base64:
+                html_content = html_content.replace('{{OMR_MARKER}}', f'data:image/jpeg;base64,{omr_marker_base64}')
+            else:
+                html_content = html_content.replace('{{OMR_MARKER}}', '')
 
             # Adicionar data
             if exam_date:
@@ -172,6 +180,28 @@ class CartaoRespostaService:
 
         except Exception as e:
             logger.error(f"Erro ao gerar QR Code: {str(e)}", exc_info=True)
+            return ""
+
+    def _get_omr_marker_base64(self) -> str:
+        """
+        Lê a imagem do marcador OMR e retorna como string base64 para embedding no HTML
+
+        Returns:
+            String base64 da imagem JPEG do marcador OMR
+        """
+        try:
+            if not self.omr_marker_path.exists():
+                logger.warning(f"Imagem do marcador OMR não encontrada: {self.omr_marker_path}")
+                return ""
+
+            with open(self.omr_marker_path, 'rb') as f:
+                img_bytes = f.read()
+                img_base64 = base64.b64encode(img_bytes).decode()
+                logger.debug("Marcador OMR convertido para base64 com sucesso")
+                return img_base64
+
+        except Exception as e:
+            logger.error(f"Erro ao ler marcador OMR: {str(e)}", exc_info=True)
             return ""
 
     def get_pdf_blob(self, pdf_path: Path) -> Optional[bytes]:
