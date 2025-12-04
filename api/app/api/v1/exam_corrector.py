@@ -11,6 +11,7 @@ from app.models.exam import (
 )
 from app.services.exam_corrector import ExamCorrectorService, exam_corrector_service
 from app.utils.logger import logger
+from app.core.config import settings
 
 router = APIRouter(prefix="/exam-corrector", tags=["Exam Correction"])
 
@@ -59,6 +60,20 @@ async def correct_exam(
                 status_code=400,
                 detail="Arquivo deve ser uma imagem (JPG, PNG, etc)"
             )
+        
+        # Ler conteúdo do arquivo para validar tamanho
+        contents = await file.read()
+        file_size = len(contents)
+        
+        # Validar tamanho do arquivo
+        if file_size > settings.MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Arquivo muito grande. Tamanho máximo permitido: {settings.MAX_UPLOAD_SIZE / (1024*1024):.0f}MB"
+            )
+        
+        # Resetar o ponteiro do arquivo para o início
+        await file.seek(0)
 
         # Parsear gabarito do JSON
         try:

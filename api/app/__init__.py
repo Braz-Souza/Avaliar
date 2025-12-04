@@ -28,7 +28,8 @@ def create_app() -> FastAPI:
         version=settings.APP_VERSION,
         docs_url="/docs",
         redoc_url="/redoc",
-        description="API para criação e gerenciamento de provas com compilação LaTeX"
+        description="API para criação e gerenciamento de provas com compilação LaTeX",
+        max_upload_size=settings.MAX_UPLOAD_SIZE
     )
     
     # Configurar autenticação (AuthX error handlers)

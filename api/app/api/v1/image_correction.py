@@ -16,6 +16,7 @@ import shutil
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.config import settings
 from app.db.models import (
     Correcao, CorrecaoCreate, CorrecaoRead, CorrecaoReadWithDetails,
     CorrecaoResposta, CorrecaoRespostaCreate,
@@ -101,6 +102,20 @@ async def upload_and_process_image(
             status_code=400,
             detail="O arquivo deve ser uma imagem"
         )
+    
+    # Ler conteúdo do arquivo para validar tamanho
+    contents = await file.read()
+    file_size = len(contents)
+    
+    # Validar tamanho do arquivo
+    if file_size > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Arquivo muito grande. Tamanho máximo permitido: {settings.MAX_UPLOAD_SIZE / (1024*1024):.0f}MB"
+        )
+    
+    # Resetar o ponteiro do arquivo para o início
+    await file.seek(0)
 
     # Validar se aluno, turma e prova existem
     aluno = session.get(Aluno, aluno_uuid)

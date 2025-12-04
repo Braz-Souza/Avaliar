@@ -8,6 +8,7 @@ import logging
 from typing import Dict
 
 from app.services.cartao_resposta_service import CartaoRespostaService
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,14 @@ async def scan_qrcode(file: UploadFile = File(...)) -> JSONResponse:
         
         # Lê o conteúdo do arquivo
         contents = await file.read()
+        
+        # Valida tamanho do arquivo
+        file_size = len(contents)
+        if file_size > settings.MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Arquivo muito grande. Tamanho máximo permitido: {settings.MAX_UPLOAD_SIZE / (1024*1024):.0f}MB"
+            )
         
         # Processa QR code
         success, message, data = cartao_service.read_qr_code(contents)
