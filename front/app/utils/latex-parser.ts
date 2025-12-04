@@ -12,24 +12,17 @@ export function parseLatexToQuestions(latex: string): Question[] {
   const lines = latex.split('\n');
   let currentQuestion: Question | null = null;
   let optionIndex = 0;
+  const questionRegex = /^(Q)\d*:/;
 
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (trimmed.startsWith('Q:')) {
+    if (questionRegex.test(trimmed)) {
       if (currentQuestion) questions.push(currentQuestion);
+      const questionText = trimmed.replace(/^(Q)\d*:\s*/, '').trim()
       currentQuestion = {
         id: Date.now().toString() + Math.random(),
-        text: trimmed.substring(2).trim(),
-        options: [],
-      };
-      optionIndex = 0;
-    } else if (trimmed.startsWith('QM:')) {
-      // Convert QM: to Q: for backward compatibility
-      if (currentQuestion) questions.push(currentQuestion);
-      currentQuestion = {
-        id: Date.now().toString() + Math.random(),
-        text: trimmed.substring(3).trim(),
+        text: questionText,
         options: [],
       };
       optionIndex = 0;
@@ -54,8 +47,8 @@ export function parseLatexToQuestions(latex: string): Question[] {
  * Converts Question objects to LaTeX format
  */
 export function questionsToLatex(questions: Question[]): string {
-  return questions.map(q => {
-    const questionLine = `Q: ${q.text}`;
+  return questions.map((q, i) => {
+    const questionLine = `Q${i + 1}: ${q.text}`;
     const optionLines = q.options.map((opt, idx) => {
       const letter = String.fromCharCode(97 + idx);
       const asterisk = opt.isCorrect ? ' *' : '';

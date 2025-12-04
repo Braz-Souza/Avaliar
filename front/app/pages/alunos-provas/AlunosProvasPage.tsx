@@ -5,9 +5,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router";
-import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData, type ImageCorrectionResponse } from "../../services/api";
-import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload, CheckCircle, XCircle } from "lucide-react";
+import { randomizacaoApi, alunosApi, provasApi, imageCorrectionApi, cartaoRespostaApi, type AlunoRandomizacaoInfo, type AlunoInfo, type ProvaInfo, type ProvaData, type ImageCorrectionResponse } from "../../services/api";
+import { ArrowLeft, Download, Eye, Shuffle, PackageOpen, Upload, CheckCircle, XCircle, Calendar, ScanLine } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import { formatLocalDate } from "../../utils";
 
 export function AlunosProvasPage() {
   const { turmaId, provaId } = useParams<{ turmaId: string; provaId: string }>();
@@ -17,14 +18,22 @@ export function AlunosProvasPage() {
   const [correcoes, setCorrecoes] = useState<{ [key: string]: ImageCorrectionResponse }>({});
   const [prova, setProva] = useState<ProvaInfo | null>(null);
   const [turmaProvaId, setTurmaProvaId] = useState<string | null>(null);
+  const [dataProva, setDataProva] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingPdf, setGeneratingPdf] = useState<{ [key: string]: boolean }>({});
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [downloadingCartoesZip, setDownloadingCartoesZip] = useState(false);
   const [downloadingCartao, setDownloadingCartao] = useState(false);
   const [downloadingGabarito, setDownloadingGabarito] = useState<{ [key: string]: boolean }>({});
+  const [downloadingCartaoResposta, setDownloadingCartaoResposta] = useState<{ [key: string]: boolean }>({});
   const [uploadingImage, setUploadingImage] = useState<{ [key: string]: boolean }>({});
   const [dragOverAluno, setDragOverAluno] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [updatingDate, setUpdatingDate] = useState(false);
+  const [scanningQRCode, setScanningQRCode] = useState(false);
+  const [qrScanResult, setQrScanResult] = useState<{ matricula: string; turma_prova_id: string } | null>(null);
 
   useEffect(() => {
     if (turmaId && provaId) {
@@ -64,6 +73,11 @@ export function AlunosProvasPage() {
       const turmaProvaId = turmaProvas[0].id;
       setTurmaProvaId(turmaProvaId);
 
+      // Armazenar data da prova se existir
+      if (turmaProvas[0].data) {
+        setDataProva(turmaProvas[0].data);
+      }
+
       // Load alunos randomizacoes
       const randomizacoes = await randomizacaoApi.getAlunosRandomizacoes(turmaProvaId);
       setAlunos(randomizacoes);
@@ -102,13 +116,13 @@ export function AlunosProvasPage() {
   };
 
   const handleGeneratePdf = async (alunoId: string, alunoName: string) => {
-    if (!provaId) return;
+    if (!turmaProvaId) return;
 
     try {
       setGeneratingPdf(prev => ({ ...prev, [alunoId]: true }));
 
       // Download PDF blob from the new endpoint
-      const pdfBlob = await randomizacaoApi.downloadAlunoProvaPdf(alunoId, provaId);
+      const pdfBlob = await randomizacaoApi.downloadAlunoProvaPdf(turmaProvaId, alunoId);
 
       // Create download link from blob
       const url = window.URL.createObjectURL(pdfBlob);
@@ -153,6 +167,32 @@ export function AlunosProvasPage() {
       alert('Erro ao baixar arquivo ZIP com todas as provas');
     } finally {
       setDownloadingZip(false);
+    }
+  };
+
+  const handleDownloadAllCartoesRespostaZip = async () => {
+    if (!turmaProvaId) return;
+
+    try {
+      setDownloadingCartoesZip(true);
+
+      const zipBlob = await randomizacaoApi.downloadAllCartoesRespostaZip(turmaProvaId);
+
+      const url = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cartoes_resposta_${prova?.name?.replace(/\s+/g, '_')}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error('Erro ao baixar ZIP de cartões resposta:', err);
+      alert('Erro ao baixar arquivo ZIP com todos os cartões resposta');
+    } finally {
+      setDownloadingCartoesZip(false);
     }
   };
 
@@ -212,12 +252,12 @@ export function AlunosProvasPage() {
   };
 
   const handleDownloadGabarito = async (alunoId: string, alunoName: string) => {
-    if (!provaId) return;
+    if (!turmaProvaId) return;
 
     try {
       setDownloadingGabarito(prev => ({ ...prev, [alunoId]: true }));
 
-      const pdfBlob = await randomizacaoApi.downloadGabaritoAluno(alunoId, provaId);
+      const pdfBlob = await randomizacaoApi.downloadGabaritoAluno(turmaProvaId, alunoId);
 
       const url = window.URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
@@ -234,6 +274,32 @@ export function AlunosProvasPage() {
       alert('Erro ao baixar gabarito do aluno');
     } finally {
       setDownloadingGabarito(prev => ({ ...prev, [alunoId]: false }));
+    }
+  };
+
+  const handleDownloadCartaoRespostaAluno = async (alunoId: string, alunoName: string) => {
+    if (!turmaProvaId) return;
+
+    try {
+      setDownloadingCartaoResposta(prev => ({ ...prev, [alunoId]: true }));
+
+      const pdfBlob = await randomizacaoApi.downloadCartaoRespostaAluno(turmaProvaId, alunoId);
+
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `cartao_resposta_${alunoName.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error('Erro ao baixar cartão resposta:', err);
+      alert('Erro ao baixar cartão resposta do aluno');
+    } finally {
+      setDownloadingCartaoResposta(prev => ({ ...prev, [alunoId]: false }));
     }
   };
 
@@ -351,9 +417,102 @@ export function AlunosProvasPage() {
     ).join(', ');
   };
 
+  const handleOpenDateModal = () => {
+    // Preencher com a data atual se existir, senão com a data de hoje
+    if (dataProva) {
+      setSelectedDate(dataProva);
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      setSelectedDate(today);
+    }
+    setShowDateModal(true);
+  };
+
+  const handleUpdateDate = async () => {
+    if (!turmaId || !provaId || !selectedDate) return;
+
+    try {
+      setUpdatingDate(true);
+      await randomizacaoApi.updateDataProva(turmaId, provaId, selectedDate);
+      setDataProva(selectedDate);
+      setShowDateModal(false);
+      alert('✅ Data da prova atualizada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao atualizar data:', err);
+      alert('❌ Erro ao atualizar data da prova');
+    } finally {
+      setUpdatingDate(false);
+    }
+  };
+
+  const handleScanAndUpload = async (file: File) => {
+    try {
+      setScanningQRCode(true);
+      setQrScanResult(null);
+
+      // Primeiro, faz o scan do QR code
+      const scanResult = await cartaoRespostaApi.scanQRCode(file);
+
+      if (!scanResult.success || !scanResult.data) {
+        alert('❌ ' + (scanResult.message || 'Erro ao ler QR code da imagem'));
+        return;
+      }
+
+      const { matricula, turma_prova_id } = scanResult.data;
+      setQrScanResult(scanResult.data);
+
+      // Verificar se o turma_prova_id corresponde ao atual
+      if (turma_prova_id !== turmaProvaId) {
+        alert(`⚠️ Atenção: O cartão resposta é de outra turma/prova!\n\nEsperado: ${turmaProvaId}\nEncontrado: ${turma_prova_id}`);
+        return;
+      }
+
+      // Buscar o aluno pela matrícula
+      const aluno = Object.values(alunosDetails).find(a => a.matricula === matricula);
+
+      if (!aluno) {
+        alert(`❌ Aluno com matrícula ${matricula} não encontrado nesta turma`);
+        return;
+      }
+
+      // Verificar se já existe correção
+      if (correcoes[aluno.id]) {
+        alert(`❌ O aluno ${aluno.nome} (${matricula}) já possui uma correção cadastrada!`);
+        return;
+      }
+
+      // Processar a imagem automaticamente
+      alert(`✅ QR Code lido com sucesso!\n\nAluno: ${aluno.nome}\nMatrícula: ${matricula}\n\nProcessando correção...`);
+      await handleImageUpload(aluno.id, file);
+
+    } catch (err: any) {
+      console.error('Erro ao processar scan:', err);
+      const errorMessage = err.response?.data?.detail || err.message || 'Erro ao processar QR code';
+      alert(`❌ ${errorMessage}`);
+    } finally {
+      setScanningQRCode(false);
+    }
+  };
+
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar se é uma imagem
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione apenas arquivos de imagem');
+      return;
+    }
+
+    await handleScanAndUpload(file);
+    
+    // Limpar o input para permitir selecionar o mesmo arquivo novamente
+    e.target.value = '';
+  };
+
   if (loading) {
     return (
-      <main className="flex flex-col min-h-screen bg-base-200">
+      <main className="flex flex-col min-h-screen bg-base-200">`
         <div className="flex-1 flex justify-center items-center">
           <span className="loading loading-spinner loading-lg"></span>
         </div>
@@ -382,60 +541,129 @@ export function AlunosProvasPage() {
     <main className="flex flex-col min-h-screen bg-base-200">
       <header className="w-full bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link to="/turmas" className="text-gray-600 hover:text-gray-900">
-                <ArrowLeft className="w-4 h-4 inline mr-2" />
-                Voltar para Turmas
-              </Link>
-              <div>
-                <h1 className="text-xl font-semibold">Provas dos Alunos</h1>
-                <p className="text-sm text-gray-600">
-                  {prova?.name} - {alunos.length} aluno(s)
-                </p>
-              </div>
+          {/* Primeira linha - Navegação e usuário */}
+          <div className="flex justify-between items-center h-12 border-b border-gray-100">
+            <Link to="/turmas" className="text-gray-600 hover:text-gray-900 flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Voltar para Turmas
+            </Link>
+            <div className="text-gray-700">
+              <span className="text-sm font-medium">
+                {user?.name || 'Usuário'}
+              </span>
             </div>
-            <div className="flex items-center space-x-4">
-              <button
-                className={`btn btn-secondary gap-2 ${downloadingCartao ? 'loading' : ''}`}
-                onClick={handleDownloadCartaoResposta}
-                disabled={downloadingCartao}
-                title="Baixar cartão resposta em PDF"
-              >
-                {downloadingCartao ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    Cartão Resposta
-                  </>
-                )}
-              </button>
-              <button
-                className={`btn btn-primary gap-2 ${downloadingZip ? 'loading' : ''}`}
-                onClick={handleDownloadAllZip}
-                disabled={downloadingZip || alunos.length === 0}
-                title="Baixar todas as provas em um arquivo ZIP"
-              >
-                {downloadingZip ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Gerando ZIP...
-                  </>
-                ) : (
-                  <>
-                    <PackageOpen className="w-4 h-4" />
-                    Baixar Todas (ZIP)
-                  </>
-                )}
-              </button>
-              <div className="text-gray-700">
-                <span className="text-sm font-medium">
-                  {user?.name || 'Usuário'}
-                </span>
+          </div>
+
+          {/* Segunda linha - Informações da prova */}
+          <div className="py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-800">{prova?.name}</h1>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-sm text-gray-600">
+                      {alunos.length} aluno(s)
+                    </span>
+                    {dataProva && (
+                      <>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-sm text-primary font-medium flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatLocalDate(dataProva)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="btn btn-sm btn-ghost gap-2"
+                  onClick={handleOpenDateModal}
+                  title="Alterar data da prova"
+                >
+                  <Calendar className="w-4 h-4" />
+                  Alterar Data
+                </button>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="flex items-center gap-2">
+                <label
+                  className={`btn btn-sm btn-success gap-2 ${scanningQRCode ? 'loading' : ''}`}
+                  title="Enviar cartão resposta com QR code - identificação automática do aluno"
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                    disabled={scanningQRCode}
+                  />
+                  {scanningQRCode ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <ScanLine className="w-4 h-4" />
+                      Scan QR Code
+                    </>
+                  )}
+                </label>
+                <button
+                  className={`btn btn-sm btn-secondary gap-2 ${downloadingCartao ? 'loading' : ''}`}
+                  onClick={handleDownloadCartaoResposta}
+                  disabled={downloadingCartao}
+                  title="Baixar cartão resposta em PDF"
+                >
+                  {downloadingCartao ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      Cartão Resposta
+                    </>
+                  )}
+                </button>
+                <button
+                  className={`btn btn-sm btn-accent gap-2 ${downloadingCartoesZip ? 'loading' : ''}`}
+                  onClick={handleDownloadAllCartoesRespostaZip}
+                  disabled={downloadingCartoesZip || alunos.length === 0}
+                  title="Baixar todos os cartões resposta em um arquivo ZIP"
+                >
+                  {downloadingCartoesZip ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Gerando ZIP...
+                    </>
+                  ) : (
+                    <>
+                      <PackageOpen className="w-4 h-4" />
+                      Cartões (ZIP)
+                    </>
+                  )}
+                </button>
+                <button
+                  className={`btn btn-sm btn-primary gap-2 ${downloadingZip ? 'loading' : ''}`}
+                  onClick={handleDownloadAllZip}
+                  disabled={downloadingZip || alunos.length === 0}
+                  title="Baixar todas as provas em um arquivo ZIP"
+                >
+                  {downloadingZip ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Gerando ZIP...
+                    </>
+                  ) : (
+                    <>
+                      <PackageOpen className="w-4 h-4" />
+                      Provas (ZIP)
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -482,8 +710,11 @@ export function AlunosProvasPage() {
                   <div>
                     <div className="font-bold">Como enviar correções:</div>
                     <div className="text-sm">
-                      Arraste uma imagem do cartão resposta sobre a linha de um aluno para processá-la automaticamente.
-                      Alunos que já possuem correção não aceitarão novos envios.
+                      <strong>Opção 1 (Recomendado):</strong> Use o botão "Scan QR Code" no topo para enviar uma imagem do cartão resposta. 
+                      O sistema identificará automaticamente o aluno através do QR code.<br />
+                      <strong>Opção 2:</strong> Arraste uma imagem do cartão resposta sobre a linha de um aluno específico.
+                      <br />
+                      <em>Nota: Alunos que já possuem correção não aceitarão novos envios.</em>
                     </div>
                   </div>
                 </div>
@@ -563,6 +794,21 @@ export function AlunosProvasPage() {
                                 Detalhes
                               </button>
                               <button
+                                className={`btn btn-sm btn-secondary btn-outline gap-2 ${
+                                  downloadingCartaoResposta[alunoRand.aluno_id] ? 'loading' : ''
+                                }`}
+                                onClick={() => handleDownloadCartaoRespostaAluno(alunoRand.aluno_id, aluno?.nome || '')}
+                                disabled={downloadingCartaoResposta[alunoRand.aluno_id]}
+                                title="Baixar cartão resposta personalizado do aluno"
+                              >
+                                {downloadingCartaoResposta[alunoRand.aluno_id] ? (
+                                  <span className="loading loading-spinner loading-sm"></span>
+                                ) : (
+                                  <Download className="w-4 h-4" />
+                                )}
+                                Cartão Resposta
+                              </button>
+                              <button
                                 className={`btn btn-sm btn-warning btn-outline gap-2 ${
                                   downloadingGabarito[alunoRand.aluno_id] ? 'loading' : ''
                                 }`}
@@ -604,6 +850,45 @@ export function AlunosProvasPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de alteração de data */}
+      {showDateModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Alterar Data da Prova</h3>
+            
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text">Selecione a nova data:</span>
+              </label>
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowDateModal(false)}
+                disabled={updatingDate}
+              >
+                Cancelar
+              </button>
+              <button
+                className={`btn btn-primary ${updatingDate ? 'loading' : ''}`}
+                onClick={handleUpdateDate}
+                disabled={updatingDate || !selectedDate}
+              >
+                {updatingDate ? 'Salvando...' : 'Salvar'}
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop" onClick={() => !updatingDate && setShowDateModal(false)}></div>
+        </div>
+      )}
     </main>
   );
 }

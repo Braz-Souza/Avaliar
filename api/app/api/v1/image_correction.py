@@ -16,11 +16,13 @@ import shutil
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
+from app.core.config import settings
 from app.db.models import (
     Correcao, CorrecaoCreate, CorrecaoRead, CorrecaoReadWithDetails,
     CorrecaoResposta, CorrecaoRespostaCreate,
     User, Aluno, Turma, Prova
 )
+from app.db.models.randomizacao import TurmaProva
 from app.services.randomizacao_manager import RandomizacaoManagerService
 
 router = APIRouter(
@@ -100,6 +102,20 @@ async def upload_and_process_image(
             status_code=400,
             detail="O arquivo deve ser uma imagem"
         )
+    
+    # Ler conteúdo do arquivo para validar tamanho
+    contents = await file.read()
+    file_size = len(contents)
+    
+    # Validar tamanho do arquivo
+    if file_size > settings.MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Arquivo muito grande. Tamanho máximo permitido: {settings.MAX_UPLOAD_SIZE / (1024*1024):.0f}MB"
+        )
+    
+    # Resetar o ponteiro do arquivo para o início
+    await file.seek(0)
 
     # Validar se aluno, turma e prova existem
     aluno = session.get(Aluno, aluno_uuid)
@@ -111,7 +127,7 @@ async def upload_and_process_image(
         raise HTTPException(status_code=404, detail=f"Turma com ID {turma_id} não encontrada")
 
     prova = session.get(Prova, prova_uuid)
-    if not prova:
+    if not prova or prova.deleted:
         raise HTTPException(status_code=404, detail=f"Prova com ID {prova_id} não encontrada")
 
     # Buscar o usuário corretor pelo username
@@ -195,9 +211,23 @@ async def upload_and_process_image(
         # Criar a correção no banco de dados
         total_questoes = len(omr_results)
 
+        # Buscar TurmaProva pelo turma_id e prova_id
+        turma_prova = session.exec(
+            select(TurmaProva).where(
+                TurmaProva.turma_id == turma_uuid,
+                TurmaProva.prova_id == prova_uuid
+            )
+        ).first()
+
+        if not turma_prova:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Não existe vínculo entre a turma {turma_id} e a prova {prova_id}"
+            )
+
         # Buscar gabarito e calcular nota
         randomizacao_manager = RandomizacaoManagerService(session)
-        gabarito = await randomizacao_manager.get_correct_answers_for_aluno(aluno_uuid, prova_uuid)
+        gabarito = await randomizacao_manager.get_correct_answers_for_aluno(aluno_uuid, turma_prova.id)
         acertos = sum(1 for q, r in omr_results.items() if r and gabarito.get(q) and r.upper() == gabarito[q])
         nota = (acertos / total_questoes * 10) if total_questoes > 0 else 0
 
@@ -340,6 +370,10 @@ async def buscar_correcao(
     turma = session.get(Turma, correcao.turma_id)
     prova = session.get(Prova, correcao.prova_id)
     corretor = session.get(User, correcao.corrigido_por)
+
+    # Verificar se prova foi deletada
+    if prova and prova.deleted:
+        prova = None
 
     return CorrecaoReadWithDetails(
         id=correcao.id,

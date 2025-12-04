@@ -37,11 +37,37 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    const status = error.response?.status;
     console.error('❌ Response Error:', {
-      status: error.response?.status,
+      status,
       url: error.config?.url,
       data: error.response?.data,
     });
+
+    // Se for não autorizado, limpar credenciais e redirecionar para o login
+    if (status === 401) {
+      try {
+        // Remover token e usuário do localStorage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
+      } catch (e) {
+        // Ignorar erros ao acessar localStorage em ambientes não-browser
+      }
+
+      // Remover header Authorization padrão
+      try {
+        delete api.defaults.headers.common['Authorization'];
+      } catch (e) {
+        // ignore
+      }
+
+      // Redirecionar para a rota de login (apenas se não estiver já na página de login)
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+        // Usar replace para não permitir voltar para a rota protegida
+        window.location.replace('/login');
+      }
+    }
+
     return Promise.reject(error);
   }
 );
@@ -65,6 +91,7 @@ export interface TurmaProvaInfo {
   turma_id: string;
   prova_id: string;
   created_at: string;
+  data?: string;
 }
 
 export interface AlunoRandomizacaoInfo {
@@ -203,8 +230,8 @@ export const randomizacaoApi = {
   },
 
   // Download personalized PDF for aluno (returns blob)
-  downloadAlunoProvaPdf: async (alunoId: string, provaId: string): Promise<Blob> => {
-    const response = await api.get(`/randomizacao/aluno/${alunoId}/prova/${provaId}/content`, {
+  downloadAlunoProvaPdf: async (turmaProvaId: string, alunoId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/${turmaProvaId}/aluno/${alunoId}/content`, {
       responseType: 'blob'
     });
     return response.data;
@@ -213,16 +240,46 @@ export const randomizacaoApi = {
   // Download ZIP with all PDFs for a turma-prova
   downloadAllProvasZip: async (turmaProvaId: string): Promise<Blob> => {
     const response = await api.get(`/randomizacao/download-zip/${turmaProvaId}`, {
-      responseType: 'blob'
+      responseType: 'blob',
+      timeout: 1200000
     });
     return response.data;
   },
 
   // Download gabarito personalizado do aluno PDF
-  downloadGabaritoAluno: async (alunoId: string, provaId: string): Promise<Blob> => {
-    const response = await api.get(`/randomizacao/gabarito/${alunoId}/${provaId}`, {
+  downloadGabaritoAluno: async (turmaProvaId: string, alunoId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/${turmaProvaId}/gabarito/${alunoId}`, {
       responseType: 'blob'
     });
+    return response.data;
+  },
+
+  // Download cartão resposta personalizado do aluno PDF
+  downloadCartaoRespostaAluno: async (turmaProvaId: string, alunoId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/${turmaProvaId}/cartao-resposta/${alunoId}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  // Download ZIP with all cartões resposta for a turma-prova
+  downloadAllCartoesRespostaZip: async (turmaProvaId: string): Promise<Blob> => {
+    const response = await api.get(`/randomizacao/download-cartoes-resposta-zip/${turmaProvaId}`, {
+      responseType: 'blob',
+      timeout: 1200000
+    });
+    return response.data;
+  },
+
+  // Update data da prova
+  updateDataProva: async (turmaId: string, provaId: string, data: string): Promise<{ message: string; data: string }> => {
+    const response = await api.put(`/randomizacao/turma/${turmaId}/prova/${provaId}/data`, { data });
+    return response.data;
+  },
+
+  // Get data da prova
+  getDataProva: async (turmaId: string, provaId: string): Promise<{ data: string | null }> => {
+    const response = await api.get(`/randomizacao/turma/${turmaId}/prova/${provaId}/data`);
     return response.data;
   },
 };
@@ -479,6 +536,33 @@ export const examCorrectorApi = {
     formData.append('num_options', numOptions.toString());
 
     const response = await api.post('/exam-corrector/validate-answer-key', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+};
+
+// Cartão Resposta API
+export interface QRCodeData {
+  matricula: string;
+  turma_prova_id: string;
+}
+
+export interface ScanQRCodeResponse {
+  success: boolean;
+  message: string;
+  data: QRCodeData | null;
+}
+
+export const cartaoRespostaApi = {
+  // Scan QR code from answer sheet image
+  scanQRCode: async (imageFile: File): Promise<ScanQRCodeResponse> => {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+
+    const response = await api.post('/cartao-resposta/scan-qrcode', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

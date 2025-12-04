@@ -27,7 +27,7 @@ class MigrationService:
         Returns:
             Dicionário com estatísticas da migração
         """
-        provas = self.db.exec(select(Prova)).all()
+        provas = self.db.exec(select(Prova).where(Prova.deleted == False)).all()
 
         migrated_count = 0
         skipped_count = 0
@@ -162,10 +162,10 @@ class MigrationService:
         Returns:
             Dicionário com estatísticas do status atual
         """
-        total_provas = len(self.db.exec(select(Prova)).all())
+        total_provas = len(self.db.exec(select(Prova).where(Prova.deleted == False)).all())
         provas_com_questoes = 0
 
-        for prova in self.db.exec(select(Prova)).all():
+        for prova in self.db.exec(select(Prova).where(Prova.deleted == False)).all():
             questoes_count = len(self.db.exec(
                 select(Questao).where(Questao.prova_id == prova.id)
             ).all())

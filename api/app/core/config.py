@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # API SETTINGS
     # =============================================================================
     APP_NAME: str = "Avaliar API"
-    APP_VERSION: str = "0.0.0"
+    APP_VERSION: str = "0.1.0"
     API_PORT: int = 8000
     DEBUG: bool = True
     
@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     CLEANUP_INTERVAL_MINUTES: int = 10
     MAX_TEMP_PDFS: int = 100
     TEMP_PDF_PREFIX: str = "temp_"
+    
+    # =============================================================================
+    # UPLOAD SETTINGS
+    # =============================================================================
+    MAX_UPLOAD_SIZE: int = 100 * 1024 * 1024  # 100MB em bytes
     
     # =============================================================================
     # CORS SETTINGS

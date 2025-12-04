@@ -3,7 +3,7 @@ Service para parsing de conteúdo LaTeX em questões estruturadas
 """
 
 from typing import List
-
+import re
 
 class LaTeXParserService:
     """
@@ -31,35 +31,24 @@ class LaTeXParserService:
         current_questao = None
         questao_order = 0
         opcao_order = 0
+        padrao_questao = re.compile(r'Q\d*:')
 
         for line in lines:
             trimmed = line.strip()
 
-            if trimmed.startswith('Q:'):
+            if padrao_questao.match(trimmed):
                 if current_questao:
                     questoes.append(current_questao)
 
                 questao_order += 1
                 current_questao = {
                     "order": questao_order,
-                    "text": trimmed[2:].strip(),
+                    "text": re.sub(r'^Q\d*:\s*', '', trimmed).strip(),
                     "opcoes": []
                 }
                 opcao_order = 0
 
-            elif trimmed.startswith('QM:'):
-                if current_questao:
-                    questoes.append(current_questao)
-
-                questao_order += 1
-                current_questao = {
-                    "order": questao_order,
-                    "text": trimmed[3:].strip(),
-                    "opcoes": []
-                }
-                opcao_order = 0
-
-            elif trimmed.startswith(('a)', 'b)', 'c)', 'd)', 'e)', 'f)', 'g)', 'h)', 'i)', 'j)')):
+            elif trimmed.startswith(('a)', 'b)', 'c)', 'd)', 'e)')):
                 if current_questao:
                     has_asterisk = trimmed.endswith('*')
                     text = trimmed[2:].strip().replace('*$', '').strip()
@@ -99,7 +88,7 @@ class LaTeXParserService:
             String no formato LaTeX
         """
         latex_parts = []
-
+    
         for questao in questoes:
             latex_parts.append(f"Q: {questao['text']}")
 

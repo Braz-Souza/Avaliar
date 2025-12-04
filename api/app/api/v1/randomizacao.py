@@ -7,22 +7,32 @@ TODAS AS ROTAS REQUEREM AUTENTICAÇÃO (via middleware global)
 import logging
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
-from app.db.models.randomizacao import TurmaProvaRead, AlunoRandomizacaoRead
+from app.db.models.randomizacao import TurmaProva, TurmaProvaRead, AlunoRandomizacaoRead
 from app.services.randomizacao_manager import RandomizacaoManagerService
 from app.services.turma_manager import TurmaManagerService
 from app.services.prova_manager import ProvaManagerService
 from app.services.latex_compiler import LaTeXCompilerService
 from app.services.gabarito_service import GabaritoService
+from app.services.cartao_resposta_service import CartaoRespostaService
+from app.services.aluno_manager import AlunoManagerService
 from app.core.database import get_db
 from app.core.dependencies import CurrentUser
 
 router = APIRouter(prefix="/randomizacao", tags=["Randomização Management"])
+
+
+class UpdateDataProvaRequest(BaseModel):
+    """Request model para atualização de data da prova"""
+    data: date
 
 
 def get_randomizacao_manager(db: Session = Depends(get_db)) -> RandomizacaoManagerService:
@@ -72,6 +82,19 @@ def get_latex_compiler() -> LaTeXCompilerService:
         LaTeXCompilerService
     """
     return LaTeXCompilerService()
+
+
+def get_aluno_manager(db: Session = Depends(get_db)) -> AlunoManagerService:
+    """
+    Dependency para obter instância do serviço de alunos com sessão do banco
+
+    Args:
+        db: Sessão do banco de dados
+
+    Returns:
+        AlunoManagerService com sessão do banco
+    """
+    return AlunoManagerService(db)
 
 
 @router.post("/link/{turma_id}/{prova_id}", response_model=TurmaProvaRead, status_code=201)
@@ -188,10 +211,10 @@ async def get_aluno_randomizacao(
         raise HTTPException(status_code=500, detail=f"Erro ao obter randomização: {str(e)}")
 
 
-@router.get("/aluno/{aluno_id}/prova/{prova_id}/content")
+@router.get("/{turma_prova_id}/aluno/{aluno_id}/content")
 async def get_aluno_prova_content(
     aluno_id: UUID,
-    prova_id: UUID,
+    turma_prova_id: UUID,
     user_id: CurrentUser,
     manager: RandomizacaoManagerService = Depends(get_randomizacao_manager),
     latex_compiler: LaTeXCompilerService = Depends(get_latex_compiler)
@@ -201,7 +224,7 @@ async def get_aluno_prova_content(
 
     Args:
         aluno_id: ID do aluno
-        prova_id: ID da prova
+        turma_prova_id: ID da prova
         user_id: ID do usuário autenticado (injetado pelo middleware)
         manager: Serviço de randomização (injetado)
         latex_compiler: Serviço de compilação LaTeX (injetado)
@@ -214,12 +237,12 @@ async def get_aluno_prova_content(
     """
     try:
         # Obter conteúdo personalizado
-        content = await manager.get_aluno_prova_content(aluno_id, prova_id)
+        content = await manager.get_aluno_prova_content(aluno_id, turma_prova_id)
 
         # Compilar para PDF
         success, pdf_bytes, error = await latex_compiler.compile_to_bytes(
             latex_content=content,
-            filename=f"prova_{aluno_id}_{prova_id}"
+            filename=f"prova_{aluno_id}_{turma_prova_id}"
         )
 
         if not success:
@@ -397,12 +420,13 @@ async def download_all_provas_zip(
         raise HTTPException(status_code=500, detail=f"Erro ao gerar ZIP das provas: {str(e)}")
 
 
-@router.get("/gabarito/{aluno_id}/{prova_id}")
+@router.get("/{turma_prova_id}/gabarito/{aluno_id}")
 async def download_gabarito_aluno(
+    turma_prova_id: UUID,
     aluno_id: UUID,
-    prova_id: UUID,
     user_id: CurrentUser,
-    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager)
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager),
+    aluno_manager: AlunoManagerService = Depends(get_aluno_manager)
 ):
     """
     Baixa o gabarito personalizado em PDF para um aluno específico - REQUER AUTENTICAÇÃO
@@ -412,6 +436,7 @@ async def download_gabarito_aluno(
         prova_id: ID da prova
         user_id: ID do usuário autenticado (injetado pelo middleware)
         manager: Serviço de randomização (injetado)
+        aluno_manager: Serviço de gerenciamento de alunos (injetado)
 
     Returns:
         Response com arquivo PDF do gabarito personalizado
@@ -420,14 +445,33 @@ async def download_gabarito_aluno(
         HTTPException: Se aluno/prova não existirem ou erro na geração do PDF
     """
     try:
+        # Obter informações do aluno
+        aluno = await aluno_manager.get_aluno(aluno_id)
+        
+        # Obter informações da turma-prova para buscar a data
+        turma_prova = manager.db.execute(
+            select(TurmaProva).where(TurmaProva.id == turma_prova_id)
+        ).scalar_one_or_none()
+        
+        if not turma_prova:
+            raise ValueError(f"Vínculo turma-prova com ID {turma_prova_id} não encontrado")
+        
+        # Buscar a data da prova
+        exam_date = await manager.get_data_prova(turma_prova.turma_id, turma_prova.prova_id)
+        exam_date_str = exam_date.strftime("%d/%m/%Y") if exam_date else None
+        
         # Obter respostas corretas usando o serviço de randomização
-        correct_answers = await manager.get_correct_answers_for_aluno(aluno_id, prova_id)
+        correct_answers = await manager.get_correct_answers_for_aluno(aluno_id, turma_prova_id)
 
         # Usar GabaritoService para gerar o PDF
         gabarito_service = GabaritoService()
         success, message, pdf_path = gabarito_service.generate_pdf(
             correct_answers=correct_answers,
-            filename=f"gabarito_aluno_{aluno_id}_prova_{prova_id}"
+            filename=f"gabarito_aluno_{aluno_id}_prova_{turma_prova_id}",
+            student_name=aluno.nome,
+            student_matricula=aluno.matricula,
+            exam_date=exam_date_str,
+            turma_prova_id=turma_prova_id
         )
 
         if not success or not pdf_path:
@@ -447,8 +491,196 @@ async def download_gabarito_aluno(
         )
 
     except ValueError as e:
+        logger.error(f"ValueError downloading gabarito: {str(e)}", exc_info=True)
         raise HTTPException(status_code=404, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Unexpected error downloading gabarito for aluno {aluno_id}, prova {turma_prova_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erro ao gerar gabarito: {str(e)}")
+
+
+@router.get("/{turma_prova_id}/cartao-resposta/{aluno_id}")
+async def download_cartao_resposta_aluno(
+    turma_prova_id: UUID,
+    aluno_id: UUID,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager),
+    aluno_manager: AlunoManagerService = Depends(get_aluno_manager)
+):
+    """
+    Baixa o cartão resposta personalizado em PDF para um aluno específico - REQUER AUTENTICAÇÃO
+
+    Args:
+        aluno_id: ID do aluno
+        turma_prova_id: ID do vínculo turma-prova
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+        aluno_manager: Serviço de gerenciamento de alunos (injetado)
+
+    Returns:
+        Response com arquivo PDF do cartão resposta personalizado
+
+    Raises:
+        HTTPException: Se aluno/prova não existirem ou erro na geração do PDF
+    """
+    try:
+        # Obter informações do aluno
+        aluno = await aluno_manager.get_aluno(aluno_id)
+        
+        # Obter informações da turma-prova para buscar a data
+        turma_prova = manager.db.execute(
+            select(TurmaProva).where(TurmaProva.id == turma_prova_id)
+        ).scalar_one_or_none()
+        
+        if not turma_prova:
+            raise ValueError(f"Vínculo turma-prova com ID {turma_prova_id} não encontrado")
+        
+        # Buscar a data da prova
+        exam_date = await manager.get_data_prova(turma_prova.turma_id, turma_prova.prova_id)
+        exam_date_str = exam_date.strftime("%d/%m/%Y") if exam_date else None
+
+        # Usar CartaoRespostaService para gerar o PDF
+        cartao_service = CartaoRespostaService()
+        success, message, pdf_path = cartao_service.generate_pdf(
+            filename=f"cartao_resposta_aluno_{aluno_id}_prova_{turma_prova_id}",
+            student_name=aluno.nome,
+            student_matricula=aluno.matricula,
+            exam_date=exam_date_str,
+            turma_prova_id=turma_prova_id
+        )
+
+        if not success or not pdf_path:
+            raise HTTPException(status_code=500, detail=f"Erro ao gerar cartão resposta: {message}")
+
+        # Ler o PDF e retornar
+        pdf_bytes = cartao_service.get_pdf_blob(pdf_path)
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="Erro ao ler PDF do cartão resposta")
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=cartao_resposta_aluno_{aluno_id}.pdf"
+            }
+        )
+
+    except ValueError as e:
+        logger.error(f"ValueError downloading cartao resposta: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error downloading cartao resposta for aluno {aluno_id}, prova {turma_prova_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar cartão resposta: {str(e)}")
+
+
+@router.put("/turma/{turma_id}/prova/{prova_id}/data")
+async def update_data_prova(
+    turma_id: UUID,
+    prova_id: UUID,
+    request: UpdateDataProvaRequest,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager)
+):
+    """
+    Atualiza a data de uma prova para uma turma específica - REQUER AUTENTICAÇÃO
+
+    Args:
+        turma_id: ID da turma
+        prova_id: ID da prova
+        request: Objeto com a nova data
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+
+    Returns:
+        Mensagem de sucesso
+
+    Raises:
+        HTTPException: Se o vínculo não existir
+    """
+    try:
+        await manager.update_data_prova(turma_id, prova_id, request.data)
+        return {"message": "Data da prova atualizada com sucesso", "data": request.data}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar data da prova: {str(e)}")
+
+
+@router.get("/turma/{turma_id}/prova/{prova_id}/data")
+async def get_data_prova(
+    turma_id: UUID,
+    prova_id: UUID,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager)
+):
+    """
+    Obtém a data de uma prova para uma turma específica - REQUER AUTENTICAÇÃO
+
+    Args:
+        turma_id: ID da turma
+        prova_id: ID da prova
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+
+    Returns:
+        Data da prova ou null se não existir
+
+    Raises:
+        HTTPException: Em caso de erro
+    """
+    try:
+        data = await manager.get_data_prova(turma_id, prova_id)
+        return {"data": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao obter data da prova: {str(e)}")
+
+
+@router.get("/download-cartoes-resposta-zip/{turma_prova_id}")
+async def download_all_cartoes_resposta_zip(
+    turma_prova_id: UUID,
+    user_id: CurrentUser,
+    manager: RandomizacaoManagerService = Depends(get_randomizacao_manager)
+):
+    """
+    Baixa arquivo ZIP contendo todos os cartões resposta dos alunos - REQUER AUTENTICAÇÃO
+
+    Args:
+        turma_prova_id: ID da ligação turma-prova
+        user_id: ID do usuário autenticado (injetado pelo middleware)
+        manager: Serviço de randomização (injetado)
+
+    Returns:
+        Response com arquivo ZIP contendo todos os PDFs dos cartões resposta
+
+    Raises:
+        HTTPException: Se turma_prova_id não existir ou erro na geração dos PDFs
+    """
+    try:
+        # Importar o serviço aqui para evitar dependência circular
+        from app.services.cartao_resposta_service import CartaoRespostaService
+        
+        cartao_service = CartaoRespostaService()
+        
+        # Criar ZIP com todos os cartões resposta
+        zip_bytes, zip_filename = await manager.create_zip_with_all_cartoes_resposta(
+            turma_prova_id=turma_prova_id,
+            cartao_service=cartao_service
+        )
+
+        # Retornar ZIP
+        return Response(
+            content=zip_bytes,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f"attachment; filename={zip_filename}"
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao gerar ZIP dos cartões resposta: {str(e)}")

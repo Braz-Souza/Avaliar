@@ -2,7 +2,7 @@
 SQLModel for randomization management
 """
 
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List
 from uuid import UUID, uuid4
 
@@ -67,6 +67,7 @@ class TurmaProvaRead(TurmaProvaBase):
     id: UUID = Field(description="Unique identifier for turma-prova relationship")
     turma_id: UUID = Field(description="ID of the turma")
     prova_id: UUID = Field(description="ID of the prova")
+    data: Optional[date] = Field(default=None, description="Date when the exam is scheduled")
 
 
 class AlunoRandomizacaoBase(SQLModel):

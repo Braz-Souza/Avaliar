@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartão Resposta - 20 Questões</title>
+    <title>Cartão Resposta - 30 Questões</title>
     <style>
         @page {
             size: A4;
@@ -28,6 +28,41 @@
             background-color: white;
             padding: 15mm;
             width: 100%;
+            position: relative;
+        }
+
+        /* Marcadores OMR nos cantos */
+        .omr-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            z-index: 1000;
+        }
+
+        .omr-marker img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .omr-marker.top-left {
+            top: 5mm;
+            left: 5mm;
+        }
+
+        .omr-marker.top-right {
+            top: 5mm;
+            right: 5mm;
+        }
+
+        .omr-marker.bottom-left {
+            bottom: 5mm;
+            left: 5mm;
+        }
+
+        .omr-marker.bottom-right {
+            bottom: 5mm;
+            right: 5mm;
         }
 
         .header {
@@ -54,6 +89,34 @@
             margin-bottom: 20px;
             padding: 15px;
             border: 2px solid #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .student-details {
+            flex: 1;
+        }
+
+        .qr-code-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-left: 20px;
+        }
+
+        .qr-code-section img {
+            width: 80px;
+            height: 80px;
+            border: 1px solid #000;
+        }
+
+        .qr-code-label {
+            font-size: 9px;
+            font-weight: bold;
+            margin-top: 3px;
+            text-align: center;
         }
 
         .info-row {
@@ -127,7 +190,7 @@
         .question-row {
             display: flex;
             align-items: center;
-            padding: 8px 0;
+            padding: 1.5px 0;
         }
 
         .question-number {
@@ -172,21 +235,6 @@
             font-size: 9px;
         }
 
-        .barcode-area {
-            margin-top: 15px;
-            text-align: center;
-            border: 2px dashed #000;
-            padding: 10px;
-            font-size: 9px;
-        }
-
-        .barcode-area .barcode {
-            font-family: 'Courier New', monospace;
-            font-size: 24px;
-            letter-spacing: 2px;
-            margin: 5px 0;
-        }
-
         @media print {
             body {
                 width: 210mm;
@@ -196,25 +244,45 @@
 </head>
 <body>
     <div class="omr-sheet">
+        <!-- Marcadores OMR para alinhamento -->
+        <div class="omr-marker top-left">
+            <img src="{{OMR_MARKER}}" alt="OMR Marker">
+        </div>
+        <div class="omr-marker top-right">
+            <img src="{{OMR_MARKER}}" alt="OMR Marker">
+        </div>
+        <div class="omr-marker bottom-left">
+            <img src="{{OMR_MARKER}}" alt="OMR Marker">
+        </div>
+        <div class="omr-marker bottom-right">
+            <img src="{{OMR_MARKER}}" alt="OMR Marker">
+        </div>
+        
         <!-- Cabeçalho -->
         <div class="header">
             <h1>CARTÃO RESPOSTA - AVALIAR</h1>
-            <p>Folha de Respostas - 20 Questões de Múltipla Escolha</p>
+            <p>Folha de Respostas - 30 Questões de Múltipla Escolha</p>
         </div>
 
         <!-- Informações do Aluno -->
         <div class="student-info">
-            <div class="info-row">
-                <div class="info-label">NOME:</div>
-                <div class="info-line"></div>
+            <div class="student-details">
+                <div class="info-row">
+                    <div class="info-label">NOME:</div>
+                    <div class="info-line">{{STUDENT_NAME}}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">MATRÍCULA:</div>
+                    <div class="info-line">{{STUDENT_MATRICULA}}</div>
+                </div>
+                <div class="info-row">
+                    <div class="info-label">DATA:</div>
+                    <div class="info-line">{{DATE}}</div>
+                </div>
             </div>
-            <div class="info-row">
-                <div class="info-label">MATRÍCULA:</div>
-                <div class="info-line"></div>
-            </div>
-            <div class="info-row">
-                <div class="info-label">DATA:</div>
-                <div class="info-line"></div>
+            <div class="qr-code-section" id="qr-section">
+                <img src="{{QR_CODE}}" alt="QR Code">
+                <div class="qr-code-label">MATRÍCULA</div>
             </div>
         </div>
 
@@ -229,12 +297,8 @@
                 <li>Respostas rasuradas ou com marcação dupla serão consideradas <strong>NULAS</strong></li>
             </ul>
         </div>
-
-        <!-- Seção de Questões -->
         <div class="questions-section">
-            <div class="questions-title">Folha de Respostas</div>
             <div class="questions-container">
-                <!-- Questões 1-10 (Coluna Esquerda) -->
                 <div>
                     <div class="question-row">
                         <div class="question-number">01.</div>
@@ -336,10 +400,6 @@
                             <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Questões 11-20 (Coluna Direita) -->
-                <div>
                     <div class="question-row">
                         <div class="question-number">11.</div>
                         <div class="options">
@@ -390,6 +450,9 @@
                             <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
                         </div>
                     </div>
+                </div>
+
+                <div>
                     <div class="question-row">
                         <div class="question-number">16.</div>
                         <div class="options">
@@ -440,11 +503,110 @@
                             <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
                         </div>
                     </div>
+                    <div class="question-row">
+                        <div class="question-number">21.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">22.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">23.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">24.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">25.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">26.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">27.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">28.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">29.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
+                    <div class="question-row">
+                        <div class="question-number">30.</div>
+                        <div class="options">
+                            <div class="option"><div class="option-label">A</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">B</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">C</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">D</div><div class="bubble"></div></div>
+                            <div class="option"><div class="option-label">E</div><div class="bubble"></div></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Rodapé -->
         <div class="footer">
             <div>2025 - Cartão Resposta</div>
             <div>Para uso temporário e testes em sala</div>
