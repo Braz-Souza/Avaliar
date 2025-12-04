@@ -5,24 +5,26 @@
   "fieldBlocks": {
     "MCQBlock1": {
       "fieldType": "QTYPE_MCQ5",
-      "origin": [ 105, 328 ],
+      "origin": [ 68, 316 ],
       "fieldLabels": ["q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"],
-      "bubblesGap": 21.5,
-      "labelsGap": 33.3
+      "bubblesGap": 29.5,
+      "labelsGap": 28.8
     },
     "MCQBlock2": {
       "fieldType": "QTYPE_MCQ5",
-      "origin": [ 336, 328 ],
+      "origin": [ 299, 316 ],
       "fieldLabels": ["q16", "q17", "q18", "q19", "q20", "q21", "q22", "q23", "q24", "q25", "q26", "q27", "q28", "q29", "q30"],
-      "bubblesGap": 21.5,
-      "labelsGap": 33.3
+      "bubblesGap": 29.5,
+      "labelsGap": 28.8
     }
   },
   "preProcessors": [
+
     {
-      "name": "CropPage",
+      "name": "CropOnMarkers",
       "options": {
-        "morphKernel": [ 10, 10 ]
+        "relativePath": "omr_marker.jpg",
+        "sheetToMarkerWidthRatio": 17
       }
     }
   ]

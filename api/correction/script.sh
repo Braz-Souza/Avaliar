@@ -29,8 +29,9 @@ echo "Processando imagem: $LATEST_IMAGE"
 rm -rf "$OMRCHECKER_DIR/inputs"/*
 rm -rf "$OMRCHECKER_DIR/outputs"/*
 
-# Copiar template
+# Copiar template e omr_marker.jpg
 cp "$FILES_DIR/template.json" "$OMRCHECKER_DIR/inputs/template.json"
+cp "$FILES_DIR/omr_marker.jpg" "$OMRCHECKER_DIR/inputs/omr_marker.jpg"
 
 # Criar estrutura de diretórios e copiar imagem
 mkdir -p "$OMRCHECKER_DIR/inputs/avaliar"
